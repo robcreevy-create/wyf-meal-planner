@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/wyf-192.png">
   <link rel="icon" type="image/png" href="icons/wyf-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.2.1">
+  <link rel="stylesheet" href="styles.css?v=1.3.0">
   <style>
     /* Each iPhone remembers its own greeting; no account or server needed. */
     .welcome-heading {display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
@@ -90,14 +90,15 @@
         <label><input type="checkbox" value="beef"> Beef</label>
         <label><input type="checkbox" value="pork"> Pork</label>
       </div>
-      <label class="smallcheck"><input id="excludeUnverified" type="checkbox" checked> Exclude recipes with unresolved fish-containing sauces</label>
+      <label class="smallcheck"><input id="excludeUnverified" type="checkbox" checked> Exclude recipes whose sauces still need a fish/seafood label check</label>
+      <p class="small-hint">54 recipes in the library. Source-card pack sizes and unresolved recipe details are labelled, not guessed.</p>
       <button class="primary wide" id="generate">✦ Generate my week</button>
     </div>
     <div id="planOutput"></div>
   </section>
   <section id="recipes" class="view" hidden>
     <h2>Recipe library</h2>
-    <p class="muted">Browse the saved meals. Tap a recipe for ingredients and cooking steps. Individual dish photos will appear as they’re added.</p>
+    <p class="muted">54 main recipes, with 4 additional versions inside their recipe cards. Food symbols only; no recipe photographs. Meals marked Needs review stay out of automatic plans.</p>
     <input id="search" type="search" placeholder="Search a meal or ingredient..." aria-label="Search recipes">
     <div class="formgrid">
       <select id="filterCategory" aria-label="Filter by style"><option>All styles</option><option>Healthy</option><option>Mix</option><option>Comfort</option></select>
@@ -110,7 +111,10 @@
     <p class="muted">Everything for your meals plus everyday extras. Unspecified original pack sizes stay labelled as such.</p>
     <div id="shoppingOutput"></div>
   </section>
-  <footer>WYF v1.2.1 · What's Your Flavour? · Saved separately on each iPhone</footer>
+  <footer>WYF v1.3.0 · What's Your Flavour? · Saved separately on each iPhone
+    <div class="actions footer-actions"><button id="checkUpdates" type="button">Check for updates</button><button id="backupDevice" type="button">Back up this device</button></div>
+    <p id="updateStatus" aria-live="polite"></p>
+  </footer>
 </main>
 <dialog id="detail" aria-label="Recipe details"><button id="closeDetail" class="close" aria-label="Close recipe">×</button><div id="detailBody"></div></dialog>
 <dialog id="extrasDialog" class="extras-dialog" aria-labelledby="extrasTitle">
@@ -139,9 +143,9 @@
     <button id="saveExtras" class="primary">Done · View shopping list →</button>
   </div>
 </dialog>
-<script src="recipes-packed.js?v=1.2.1"></script>
-<script src="recipe-images.js?v=1.2.1"></script>
-<script src="app.js?v=1.2.1"></script>
+<script src="recipes-packed.js?v=1.3.0"></script>
+
+<script src="app.js?v=1.3.0"></script>
 <script>
   // Device-specific first name, separate from meal plans and shopping lists.
   (() => {

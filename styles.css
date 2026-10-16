@@ -39,3 +39,17 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 #detail .dishpic-large{height:200px}
 .small-hint{font-size:12px;color:#6d7a6e;line-height:1.4;margin:0 0 11px}
 @media(max-width:390px){#detail .dishpic-large{height:155px}}
+
+/* v1.3: quantities, alternative cards and unobtrusive device tools. */
+.variant-label{display:block;font-weight:700;margin:14px 0;padding:12px;background:#f1f5ee;border-radius:12px}
+.variant-label select{display:block;width:100%;margin-top:8px;white-space:normal}
+.ingredient-note{font-size:.86em;color:#576052}
+.method li{margin:0 0 14px;line-height:1.6}
+.review-pill{background:#fff0ce;color:#6f4a00}
+.allocation{margin:0 0 8px 32px;font-size:.82rem;color:#56604f;line-height:1.45}
+.allocation summary{cursor:pointer;padding:4px 0}
+.allocation p{margin:5px 0}
+.footer-actions{justify-content:center;margin-top:12px}
+.footer-actions button{font-size:.82rem;min-height:40px}
+#updateStatus{font-size:.8rem}
+@media print{.footer-actions,#updateStatus,.allocation{display:none!important}.shopping-entry{break-inside:avoid}.shopgroup{break-inside:auto}}
