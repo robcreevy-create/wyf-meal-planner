@@ -1,5 +1,5 @@
-// WYF v1.3.0. Household data stays on this device. No recipe photographs.
-const WYF_VERSION = '1.3.0';
+// WYF v1.4.0. Household data stays on this device. No recipe photographs.
+const WYF_VERSION = '1.4.0';
 async function loadPackedRecipes(){
   if(!Array.isArray(window.WYF_RECIPES)) throw new Error('Recipe data is missing.');
   return window.WYF_RECIPES;
@@ -363,7 +363,7 @@ function finishExtras(clear=false) {
   extrasReviewed=true;
   persistExtras();
   $('extrasDialog').close();
-  tab('shopping');
+  lockThisWeek();
 }
 function addCustomExtras(e) {
   e.preventDefault();
@@ -462,3 +462,70 @@ async function checkForUpdates(){
 }
 $('backupDevice').onclick=exportDeviceBackup;
 $('checkUpdates').onclick=checkForUpdates;
+
+
+// ------ v1.4.0: immutable, device-local locked week snapshots ------
+// Each week contains full recipe data, shopping allocations and household extras.
+const WEEKS_KEY='omp_locked_weeks';
+let lockedWeeks=readLocal(WEEKS_KEY,[]);
+if(!Array.isArray(lockedWeeks)) lockedWeeks=[];
+lockedWeeks=lockedWeeks.filter(w=>w&&typeof w.id==='string'&&Array.isArray(w.meals));
+const deepCopy=x=>JSON.parse(JSON.stringify(x));
+function weekDate(iso){return new Date(iso).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'});}
+function weekMonday(date){let d=new Date(date);d.setHours(12,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7);return d.toLocaleDateString('en-IE',{day:'numeric',month:'long',year:'numeric'});}
+function weekFingerprint(meals){return JSON.stringify({ids:meals.map(r=>[r.id,r.variantId||'']),settings,extras:householdExtras});}
+function lockThisWeek(){
+  const meals=getPlan();if(!meals.length){tab('plan');return;}
+  const fingerprint=weekFingerprint(meals);
+  const prior=lockedWeeks.find(w=>w.fingerprint===fingerprint);
+  if(prior){tab('shopping');alert('This exact week is already saved in Weeks. No duplicate was created.');return;}
+  const now=new Date();
+  const factor=((Number(settings.adults)||2)+(settings.children?Number(settings.childPortions||0):0))/2;
+  const record={id:'week-'+now.getTime()+'-'+Math.random().toString(36).slice(2,7),createdAt:now.toISOString(),weekOf:weekMonday(now),fingerprint,
+    meals:deepCopy(meals),settings:deepCopy(settings),extras:deepCopy(householdExtras),factor,
+    shopping:deepCopy(collectShopping(meals,factor)),checks:{}};
+  lockedWeeks.unshift(record);
+  try{localStorage.setItem(WEEKS_KEY,JSON.stringify(lockedWeeks));}
+  catch(e){lockedWeeks.shift();alert('Could not save this week. Device storage may be full. No week was locked.');return;}
+  tab('shopping');
+  $('shoppingOutput').insertAdjacentHTML('afterbegin',`<div class="summary"><b>✓ Week locked in!</b> Saved under Weeks (${clean(record.weekOf)}). Your recipes and shopping quantities are stored as a snapshot on this iPhone. <button type="button" onclick="tab('weeks')">Open Weeks</button></div>`);
+}
+function saveLockedWeeks(){try{localStorage.setItem(WEEKS_KEY,JSON.stringify(lockedWeeks));return true;}catch(e){alert('Unable to save. Check available storage.');return false;}}
+function savedAmount(e){return e.measurable?`${Math.round(e.count*100)/100} ${e.unit==='unit'?'units':e.unit}${e.sourceUnits?' (size unconfirmed)':''}`:`${e.quantity}${e.allocations.length>1?' (see allocations)':''}`;}
+function savedShopping(w){
+  const groups={};w.shopping.forEach(e=>(groups[e.cat]??=[]).push(e));
+  const order=['Meat','Fruit & vegetables','Dairy & eggs','Grains & bread','Tins & jars','Pantry & sauces','Pantry staples'];
+  const food=order.filter(k=>groups[k]?.length).map(k=>`<div class="shopgroup"><h3>${clean(k)}</h3>${groups[k].map((e,i)=>`<div class="shopping-entry"><label class="shopitem ${w.checks['food-'+k+'-'+i]?'done':''}"><input type="checkbox" data-week-check="food-${clean(k)}-${i}" ${w.checks['food-'+k+'-'+i]?'checked':''}><span>${clean(e.name)} · <b>${clean(savedAmount(e))}</b></span></label><details class="allocation"><summary>Recipe allocations</summary>${e.allocations.map(a=>`<p>${clean(a.recipe)}: ${clean(a.amount)}</p>`).join('')}</details></div>`).join('')}</div>`).join('');
+  const extras=w.extras.length?`<div class="shopgroup"><h3>Household extras</h3>${w.extras.map((e,i)=>`<label class="shopitem ${w.checks['extra-'+i]?'done':''}"><input type="checkbox" data-week-check="extra-${i}" ${w.checks['extra-'+i]?'checked':''}><span>${clean(e.name)}${e.note?' · '+clean(e.note):''}</span></label>`).join('')}</div>`:'';
+  return `<p class="small-hint">Original recipe quantities, scaled × ${w.factor.toFixed(2)}. Source pack sizes that were unknown remain unconfirmed.</p>${food}${extras}`;
+}
+function renderWeeks(){
+  const root=$('weeksOutput');
+  if(!lockedWeeks.length){root.innerHTML='<div class="panel">No saved weeks yet. Generate dinners, review your extras, then tap Lock This Week In.</div>';return;}
+  root.innerHTML=lockedWeeks.map(w=>`<article class="panel saved-week"><h3>Week of ${clean(w.weekOf)}</h3><p class="muted">${w.meals.length} dinners · ${clean(w.settings.adults||2)} adults · Locked ${clean(weekDate(w.createdAt))}</p>
+  <details><summary>View dinners and cooking instructions</summary>${w.meals.map((r,i)=>`<div class="saved-dinner"><strong>${i+1}. ${clean(r.title)}</strong><p>${clean(r.minutes||'')} · ${clean(r.variantLabel||'')}</p><button type="button" data-saved-recipe="${clean(w.id)}" data-meal-index="${i}">Ingredients & cooking steps →</button></div>`).join('')}</details>
+  <details><summary>Saved shopping list</summary>${savedShopping(w)}</details>
+  <button type="button" class="delete-week" data-delete-week="${clean(w.id)}">Delete week</button></article>`).join('');
+  root.querySelectorAll('[data-saved-recipe]').forEach(b=>b.addEventListener('click',()=>showSavedRecipe(b.dataset.savedRecipe,Number(b.dataset.mealIndex))));
+  root.querySelectorAll('[data-delete-week]').forEach(b=>b.addEventListener('click',()=>deleteLockedWeek(b.dataset.deleteWeek)));
+  root.querySelectorAll('[data-week-check]').forEach(inp=>inp.addEventListener('change',()=>{
+    const w=lockedWeeks.find(w=>w.id===inp.closest('.saved-week').querySelector('[data-delete-week]').dataset.deleteWeek);
+    if(!w)return;w.checks[inp.dataset.weekCheck]=inp.checked;inp.closest('.shopitem').classList.toggle('done',inp.checked);saveLockedWeeks();
+  }));
+}
+function showSavedRecipe(id,index){
+  const w=lockedWeeks.find(w=>w.id===id),r=w?.meals[index];if(!r)return;
+  const ingredients=[...(r.ingredients||[]),...(r.pantry||[])];
+  $('detailBody').innerHTML=`<h2>${clean(r.title)}</h2><p class="muted">Saved ${clean(weekDate(w.createdAt))} · ${clean(r.minutes||'')} · Original recipe for 2 adults</p>
+  <h3>Ingredients</h3><ul>${ingredients.map(x=>`<li>${clean(x.original||x.name+' · '+quantityText(x))}${x.optional?' (optional)':''}</li>`).join('')}</ul>
+  <h3>Cooking instructions</h3><ol>${(r.steps||[]).map(step=>`<li>${clean(typeof step==='string'?step:step.text||JSON.stringify(step))}</li>`).join('')}</ol>
+  <p class="small-hint">Cook poultry and minced meat through to 75°C. These are the saved recipe instructions, independent of future library edits.</p>`;
+  $('detail').showModal();
+}
+function deleteLockedWeek(id){
+  const w=lockedWeeks.find(w=>w.id===id);if(!w)return;
+  if(!confirm(`Delete the saved week of ${w.weekOf}? This cannot be undone. Your recipe library and current meal plan will not be deleted.`))return;
+  lockedWeeks=lockedWeeks.filter(x=>x.id!==id);if(saveLockedWeeks())renderWeeks();
+}
+const tabBeforeWeeks=tab;
+tab=function(id){if(id==='weeks'){originalTab(id);renderWeeks();return;}return tabBeforeWeeks(id);};

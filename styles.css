@@ -53,3 +53,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .footer-actions button{font-size:.82rem;min-height:40px}
 #updateStatus{font-size:.8rem}
 @media print{.footer-actions,#updateStatus,.allocation{display:none!important}.shopping-entry{break-inside:avoid}.shopgroup{break-inside:auto}}
+/* Saved weeks */
+.saved-week{margin-bottom:16px}
+.saved-week details{margin:12px 0;border-top:1px solid #e2e8df;padding-top:12px}
+.saved-week summary{cursor:pointer;font-weight:700;padding:5px 0}
+.saved-dinner{padding:12px 0;border-bottom:1px solid #e7ebe4}
+.saved-dinner p{margin:4px 0 8px;color:#647064;font-size:.85rem}
+.delete-week{color:#a5242c;border:1px solid #e5b8bc;background:#fff4f4;margin-top:12px}
