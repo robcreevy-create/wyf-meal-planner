@@ -1,3 +1,10 @@
+## v1.2.1
+
+- Added **Someone else?** profile option with a free-text first name.
+- Stores any selected first name per device in the existing `wyf_device_profile` setting.
+- Lets users change their name via **Switch name** without changing saved shopping lists or recipes.
+- Kept all meal style, maximum meat-species rules and household-extras functionality from v1.2.
+
 # WYF Version 1.2
 
 ## Added

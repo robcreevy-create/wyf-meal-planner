@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/wyf-192.png">
   <link rel="icon" type="image/png" href="icons/wyf-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.2">
+  <link rel="stylesheet" href="styles.css?v=1.2.1">
   <style>
     /* Each iPhone remembers its own greeting; no account or server needed. */
     .welcome-heading {display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
@@ -23,6 +23,14 @@
     .profile-picker .profile-help {color:#596c5d;font-size:12px;margin-bottom:12px}
     .profile-options {display:flex;gap:10px;flex-wrap:wrap}
     .profile-options button {flex:1;min-width:125px;background:#287d38;color:white}
+    .profile-options button.profile-other {background:#fff;color:#287d38;border:1px solid #287d38}
+    .custom-profile-form {margin-top:12px}
+    .custom-profile-form[hidden] {display:none}
+    .custom-profile-form label {display:block;margin-bottom:6px;font-size:13px;font-weight:600}
+    .custom-profile-row {display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+    .custom-profile-row input {flex:1;min-width:135px;background:#fff}
+    .custom-profile-row button {white-space:nowrap}
+    .custom-profile-row button[type="button"] {background:#f5f8f4;color:#287d38;border:1px solid #c5d7c1}
   </style>
 </head>
 <body>
@@ -50,7 +58,16 @@
       <div class="profile-options">
         <button type="button" data-profile="Robbie">Hi, I'm Robbie</button>
         <button type="button" data-profile="Rachel">Hi, I'm Rachel</button>
+        <button type="button" id="otherProfileButton" class="profile-other" aria-expanded="false" aria-controls="otherProfileForm">Someone else?</button>
       </div>
+      <form id="otherProfileForm" class="custom-profile-form" hidden>
+        <label for="otherProfileName">What's your first name?</label>
+        <div class="custom-profile-row">
+          <input id="otherProfileName" type="text" placeholder="Your first name" autocomplete="given-name" maxlength="30" required>
+          <button type="submit">Use name</button>
+          <button type="button" id="cancelOtherProfile">Cancel</button>
+        </div>
+      </form>
     </div>
     <p class="muted">Choose your meals, reuse ingredients and get everything for the Sunday shop.</p>
     <div class="panel">
@@ -93,7 +110,7 @@
     <p class="muted">Everything for your meals plus everyday extras. Unspecified original pack sizes stay labelled as such.</p>
     <div id="shoppingOutput"></div>
   </section>
-  <footer>WYF v1.2 · What's Your Flavour? · Saved separately on each iPhone</footer>
+  <footer>WYF v1.2.1 · What's Your Flavour? · Saved separately on each iPhone</footer>
 </main>
 <dialog id="detail" aria-label="Recipe details"><button id="closeDetail" class="close" aria-label="Close recipe">×</button><div id="detailBody"></div></dialog>
 <dialog id="extrasDialog" class="extras-dialog" aria-labelledby="extrasTitle">
@@ -122,9 +139,9 @@
     <button id="saveExtras" class="primary">Done · View shopping list →</button>
   </div>
 </dialog>
-<script src="recipes-packed.js?v=1.2"></script>
-<script src="recipe-images.js?v=1.2"></script>
-<script src="app.js?v=1.2"></script>
+<script src="recipes-packed.js?v=1.2.1"></script>
+<script src="recipe-images.js?v=1.2.1"></script>
+<script src="app.js?v=1.2.1"></script>
 <script>
   // Device-specific first name, separate from meal plans and shopping lists.
   (() => {
@@ -132,26 +149,48 @@
     const heading = document.getElementById('welcomeHeading');
     const picker = document.getElementById('profilePicker');
     const switcher = document.getElementById('changeProfile');
-    const names = ['Robbie', 'Rachel'];
+    const otherButton = document.getElementById('otherProfileButton');
+    const otherForm = document.getElementById('otherProfileForm');
+    const otherName = document.getElementById('otherProfileName');
+    const cancelOther = document.getElementById('cancelOtherProfile');
 
-    function chooseProfile(name) {
-      if (!names.includes(name)) return;
-      try { localStorage.setItem(profileKey, name); } catch (e) { /* Private mode: greeting still works for this visit. */ }
+    function validFirstName(raw) {
+      // Display user-provided names as text, never as HTML.
+      const name = String(raw || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().replace(/\s+/g, ' ');
+      return name.length && name.length <= 30 ? name : null;
+    }
+    function toggleOther(show) {
+      otherForm.hidden = !show;
+      otherButton.setAttribute('aria-expanded', String(show));
+      if (show) otherName.focus();
+    }
+    function chooseProfile(raw) {
+      const name = validFirstName(raw);
+      if (!name) return;
+      try { localStorage.setItem(profileKey, name); } catch (e) { /* Private mode: this visit still works. */ }
       heading.textContent = `Hi ${name}, make this week delicious`;
       picker.hidden = true;
+      toggleOther(false);
       switcher.hidden = false;
       switcher.setAttribute('aria-label', `Switch from ${name} to another name`);
     }
     document.querySelectorAll('[data-profile]').forEach(button => {
       button.addEventListener('click', () => chooseProfile(button.dataset.profile));
     });
+    otherButton.addEventListener('click', () => toggleOther(true));
+    cancelOther.addEventListener('click', () => toggleOther(false));
+    otherForm.addEventListener('submit', e => {
+      e.preventDefault();
+      chooseProfile(otherName.value);
+    });
     switcher.addEventListener('click', () => {
       picker.hidden = false;
       switcher.hidden = true;
+      toggleOther(false);
     });
     let saved = null;
     try { saved = localStorage.getItem(profileKey); } catch (e) { /* Storage not available. */ }
-    if (names.includes(saved)) chooseProfile(saved);
+    if (validFirstName(saved)) chooseProfile(saved);
     else picker.hidden = false;
   })();
 </script>

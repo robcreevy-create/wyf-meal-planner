@@ -1,3 +1,13 @@
+# WYF v1.2.1, personalised greetings update
+
+This release adds **Someone else?** to the device profile picker, with a first-name field and local, per-iPhone persistence. It retains the Version 1.2 meal-style options, 2/3 meat rule, recipe selection, shopping extras and recipe photo mapping.
+
+**To update GitHub:** Replace the repository root `index.html` (the only app file modified from v1.2). Or upload the extracted contents of this complete ZIP to the existing repository. Keep the same repository URL so local favourites and meal plans remain on your iPhone.
+
+**No user data migration:** The saved name continues using `wyf_device_profile`; no other storage key changes. To change names, tap **Switch name**.
+
+---
+
 # WYF | What's Your Flavour?
 
 **Version 1.2** · *Think less. Eat better.*
