@@ -13,6 +13,17 @@
   <link rel="icon" type="image/png" href="icons/wyf-192.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Each iPhone remembers its own greeting; no account or server needed. */
+    .welcome-heading {display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+    .welcome-heading h2 {flex:1;min-width:215px}
+    .switch-profile {background:none;color:#287d38;font-weight:700;padding:5px 2px;font-size:12px;text-decoration:underline;text-underline-offset:3px}
+    .profile-picker {background:#eef5eb;border:1px solid #d9e7d6;border-radius:16px;padding:15px;margin:10px 0 16px}
+    .profile-picker p {margin:0 0 5px;font-size:14px}
+    .profile-picker .profile-help {color:#596c5d;font-size:12px;margin-bottom:12px}
+    .profile-options {display:flex;gap:10px;flex-wrap:wrap}
+    .profile-options button {flex:1;min-width:125px;background:#287d38;color:white}
+  </style>
 </head>
 <body>
 <main class="shell">
@@ -29,7 +40,18 @@
     <button data-tab="shopping">Shopping list</button>
   </nav>
   <section id="plan" class="view">
-    <h2>Make this week delicious</h2>
+    <div class="welcome-heading">
+      <h2 id="welcomeHeading">Make this week delicious</h2>
+      <button type="button" id="changeProfile" class="switch-profile" hidden>Switch name</button>
+    </div>
+    <div id="profilePicker" class="profile-picker" hidden>
+      <p><strong>Who's using WYF on this iPhone?</strong></p>
+      <p class="profile-help">Choose once. WYF will remember your name on this phone.</p>
+      <div class="profile-options">
+        <button type="button" data-profile="Robbie">Hi, I'm Robbie</button>
+        <button type="button" data-profile="Rachel">Hi, I'm Rachel</button>
+      </div>
+    </div>
     <p class="muted">Choose your meals, reuse ingredients and get everything for the Sunday shop.</p>
     <div class="panel">
       <div class="formgrid">
@@ -101,5 +123,35 @@
 </dialog>
 <script src="recipes-packed.js"></script>
 <script src="app.js"></script>
+<script>
+  // Device-specific first name, separate from meal plans and shopping lists.
+  (() => {
+    const profileKey = 'wyf_device_profile';
+    const heading = document.getElementById('welcomeHeading');
+    const picker = document.getElementById('profilePicker');
+    const switcher = document.getElementById('changeProfile');
+    const names = ['Robbie', 'Rachel'];
+
+    function chooseProfile(name) {
+      if (!names.includes(name)) return;
+      try { localStorage.setItem(profileKey, name); } catch (e) { /* Private mode: greeting still works for this visit. */ }
+      heading.textContent = `Hi ${name}, make this week delicious`;
+      picker.hidden = true;
+      switcher.hidden = false;
+      switcher.setAttribute('aria-label', `Switch from ${name} to another name`);
+    }
+    document.querySelectorAll('[data-profile]').forEach(button => {
+      button.addEventListener('click', () => chooseProfile(button.dataset.profile));
+    });
+    switcher.addEventListener('click', () => {
+      picker.hidden = false;
+      switcher.hidden = true;
+    });
+    let saved = null;
+    try { saved = localStorage.getItem(profileKey); } catch (e) { /* Storage not available. */ }
+    if (names.includes(saved)) chooseProfile(saved);
+    else picker.hidden = false;
+  })();
+</script>
 </body>
 </html>
