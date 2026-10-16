@@ -1,61 +1,67 @@
-# WYF: What's Your Flavour?
+# WYF | What's Your Flavour?
 
-**Think less. Eat better.** A free home-screen meal planner for the two of you, designed for an ordinary Sunday shop in Ireland. No App Store account, paid API or extra subscription is required.
+**Version 1.2** · *Think less. Eat better.*
 
-This build includes **38 complete recipes** carried over from the existing Version 3 recipe library, the middle green-and-yellow WYF plate icon that you selected, and a new **"Anything else for the shop?"** stage.
+An iPhone-friendly, no-subscription weekly meal-planning app for two people in Ireland, hosted free on GitHub Pages. This version contains the **same 38 recipes** as the current live WYF app. You do not need a new repository or a new website address.
 
-## What you can do
+## What's new in Version 1.2
 
-1. Choose 3–7 dinners, adults, optional child portions, Healthy / Mix / No preference and preferred meats. The planner uses no more than two meat types each week, with mixed beef-and-pork recipes counting as both.
-2. Generate a menu and swap meals while keeping the others unchanged.
-3. Before viewing the shopping list, answer **"Anything else for the shop?"** Tap suggestions like milk, bread, cereal, tea bags, olive oil, toilet paper, toothpaste, shampoo and bin bags.
-4. Add any other items in free text, separating multiple items with commas. For each item, you can optionally supply an amount such as `2 L`, `1 pack` or `3 bottles`.
-5. See one shopping checklist: recipe ingredients and additional household items, grouped separately. If an extra item matches a recipe ingredient, it is marked on that same shopping line instead of silently guessing a quantity.
-6. After creating the list, press **Edit everyday items** whenever you remember something else. Changes appear immediately and never alter the selected meals.
-7. Tick items off, use iPhone Share/Copy, or print/save the list as a PDF.
-8. Browse recipes, cooking instructions and favourites. Commonly selected extras appear as **Your regulars** on subsequent weeks.
+- **Personal greetings:** Choose Robbie or Rachel once on each iPhone. The greeting is saved on that device, and you can change it using **Switch name**.
+- **Comfort meal style:** The dropdown now offers **Healthy, Mix, Comfort, No preference**. Healthy uses Healthy recipes; Comfort prioritises richer Comfort meals and can also use Mix recipes; Mix balances Healthy and non-Healthy options; No preference is unrestricted by category.
+- **Meat limits adjust automatically:** **3–4 dinners → maximum 2 different meat species; 5–7 dinners → maximum 3.** The interface explains the limit. Mixed beef-and-pork mince uses both beef and pork slots; chorizo counts as pork.
+- **More robust swaps:** Swap a single meal while retaining all others. The replacement must meet the chosen style, permitted meat types, fish-risk exclusions, and meat limit. Duplicate meals are avoided.
+- **Recipe image support:** Individual photographs can be attached to each recipe using `recipe-images.js` and the `images/` folder. The same photo displays in the recipe library, weekly meal cards, and full recipe detail. **Photos have not been generated or added for all 38 dishes yet**; food illustrations remain the fallback for those recipes.
+- **All existing features retained:** Weekly plans, all 38 recipes and instructions, favourites, ingredient totals, before-you-shop household extras, quantity notes, shopping checkboxes, Share, Print/PDF, child-portion settings, and device-local saving.
 
-Both favourite recipes and household-item history are stored **on the current iPhone only**, in browser local storage. Regenerating a week clears that week's selected extras and tick marks, but retains the suggestions history. It is not synchronised between your two phones.
+## Update the existing live GitHub Pages app
 
-### What the files are
+Repository: **https://github.com/robcreevy-create/wyf-meal-planner**
 
-- `index.html` - app interface including the household-extras step.
-- `styles.css` - layout for iPhone and desktop.
-- `app.js` - recipe matching, swapping, ingredient totals, favourites, shopping and everyday extras.
-- `recipes-packed.js` - 38 existing saved recipes, separately editable for later expansions.
-- `manifest.webmanifest` - installation settings and WYF Home Screen name.
-- `icons/` - the approved **middle WYF design**, at sizes suitable for mobile home-screen icons.
+The ZIP has the correct folder structure. **Extract the ZIP first and upload the contents, not the ZIP alone.** The app files must sit in the repository **root**, beside your existing `README.md`, not inside an extra `WYF_v1_2_GitHub_Ready` directory.
 
-## Free setup with GitHub Pages
+1. Keep the same repository and the existing `main` branch. Do **not** delete the repository or change its URL. Keeping the existing site address preserves browser local storage on each phone.
+2. Replace the existing `index.html`, `app.js`, `styles.css`, and `README.md` with the files from this ZIP. Add the new `recipe-images.js` and `images/README.md` files. The unchanged `recipes-packed.js`, `manifest.webmanifest` and `icons/wyf-192.png` are also included for a complete backup.
+3. Commit the changes to `main`. GitHub Pages should automatically deploy the new commit when deployment from `main` / root is already configured.
+4. Open **https://robcreevy-create.github.io/wyf-meal-planner/** in Safari and reload. At the bottom of the page you should see **WYF v1.2**. Both iPhones should then choose their own greeting once.
+5. If an iPhone Home Screen installation still shows the old version, fully close and reopen the web app or open the site in Safari and refresh. As a last resort, remove and re-add the Home Screen icon. Do **not** clear website data unless you are happy to lose on-device saved preferences, favourites and shopping lists.
 
-1. Unzip `WYF_Whats_Your_Flavour_GitHub_Ready.zip` using the iPhone Files app or a computer.
-2. Go to **https://github.com/new** and create a **public** repository. Suggested repository name: `wyf-meal-planner`.
-3. Upload **everything inside the extracted folder** to the repository root, keeping `recipes-packed.js`, `app.js` and `styles.css` beside `index.html`, plus the `icons` folder. Do not upload the ZIP itself as the only file.
-4. In the repository open **Settings → Pages → Build and deployment**, select **Deploy from a branch**, choose `main` and `/(root)`, then Save.
-5. When Pages has finished publishing, open the site in iPhone Safari. The address normally takes the form `https://YOUR-USERNAME.github.io/wyf-meal-planner/`.
-6. In Safari, tap **Share → Add to Home Screen** and select **Open as Web App** where offered. Repeat on the second iPhone.
+**GitHub web editor note:** Uploading a file with the same path may require replacing the existing file in the editor or confirming the overwrite, depending on the browser and GitHub interface. Preserve the paths exactly.
 
-### Already uploaded an earlier Mealio prototype?
+## How to add a food picture for a recipe
 
-Replace the old files in that repository with this build, or publish the new app under a newly named repo. If you change the URL, locally saved plans and favourites **won't automatically transfer** to the new website because iPhone storage is tied to the web origin. Remove any obsolete Mealio icon files if you are replacing an earlier build.
+1. Create an original, realistic plated-dish image (label it illustrative) and save it as a `.webp`, `.jpg` or `.png` file.
+2. Upload it inside the `images/` directory in the repository, e.g. `images/pork-rigatoni.webp`.
+3. Update `recipe-images.js` to map the **exact recipe ID** to its image path:
 
-## Important limitations
+```js
+window.WYF_RECIPE_IMAGES = {
+  'HF01': 'images/pork-rigatoni.webp',
+  '1.1': 'images/lemon-herb-chicken.webp'
+};
+```
 
-- No server, account or live shared checklist. The list on one iPhone does **not** update on the other iPhone.
-- GitHub Pages serving a **public repository** makes the recipe data and source code publicly viewable. Do not add private personal information.
-- Some original ingredient sheets use unspecified quantities such as `1 sachet` or `1 pack`. Those are preserved rather than converted to guessed Lidl amounts. New household extras likewise never receive invented quantities.
-- Recipe cards currently use food symbols rather than unique AI-generated dish photos. The chosen WYF app icon is included.
-- Planning is heuristic, intended to reuse ingredients and vary meals, not a mathematically optimal pack-size optimiser.
-- Fish-risk sauces are excluded by default. Check actual package ingredients when shopping, particularly curry pastes, Worcestershire sauce and stock.
-- If children are included, ages and adult-equivalent portions are required. Cook poultry and minced meats through to **75°C**.
+These entries are **examples only**; do not add the mapping until the corresponding actual image file exists. You can add pictures gradually without changing recipes or shopping logic. If the image is missing or fails to load, the existing food illustration is shown instead. Avoid uploading third-party branded recipe covers to a public repository without permission.
 
-## Updating the recipes
+## Files in this package
 
-Keep the app data in `recipes-packed.js`. Later on, when new recipes have been approved and consolidated into the master library, update this JSON file and republish without rewriting the interface.
+- `index.html`: interface, Comfort dropdown, automatic meat-limit guidance and personal name picker
+- `app.js`: planning, swaps, filtering, saved preferences, recipe details, shopping and household extras
+- `styles.css`: layout and image presentation
+- `recipes-packed.js`: **unchanged** packed data for all 38 recipes
+- `recipe-images.js`: photo mapping for future, per-recipe images
+- `images/README.md`: image adding instructions; no plated food photos included yet
+- `manifest.webmanifest`: existing iPhone Home Screen settings
+- `icons/wyf-192.png`: existing approved WYF icon
+- `CHANGELOG.md`: summary of this update
 
-This build has been code-checked and the main meal-to-household-shopping flow tested in a simulated 390px-wide mobile browser. It has **not yet been field-tested on your two iPhones**.
+## Key limitations
 
+- Favourites, shopping-list ticks, the current plan, and chosen greeting are stored separately on each phone, not synchronised between devices.
+- GitHub Pages serves the code and recipe catalogue publicly. Do not place private household or account information in source files.
+- The app uses your existing recipes, not a paid AI API. New meal content must be approved and added to the recipe library separately.
+- When original recipes list unknown quantities such as `1 sachet` or `1 pack`, the app keeps them in those original units and **does not invent gram-exact Lidl equivalents**.
+- No fish by default. Recipes with unverified fish-containing sauces are excluded by default; always check actual product labels.
+- When cooking for children, enter their ages and combined adult-equivalent portions before scaling. Cook poultry and minced meat to **75°C**.
+- The planner favours shared ingredients and dish variety but does not guarantee mathematically optimal retail-pack use.
 
-## GitHub deployment edition
-
-The 38 recipes are compressed into `recipes-packed.js` for easy static hosting. This build requires a browser that supports `DecompressionStream` (modern iPhone Safari). The source recipes remain available in the separate recipe-library file; future updates can regenerate the packed data. The selected icon is in `icons/wyf-192.png`.
+**Tested:** JavaScript syntax and simulated 390px iPhone browsing, including recipe loading, named greetings on separate devices, all four meal styles, dinner counts 3–7, meat limits, protected swaps, local storage, household extras and photo-mapping behaviour. Actual iPhone installation still requires checking after deployment.
