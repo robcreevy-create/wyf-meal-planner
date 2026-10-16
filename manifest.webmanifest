@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "WYF - What's Your Flavour?",
+  "short_name": "WYF",
+  "description": "Think less. Eat better. Smart weekly meals and everything for the shop.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8f8f3",
+  "theme_color": "#27843a",
+  "icons": [
+    {
+      "src": "icons/wyf-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

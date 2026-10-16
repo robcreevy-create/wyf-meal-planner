@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#27843a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="WYF">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="WYF. What's Your Flavour? Your easy weekly meal plan and complete household shopping list.">
+  <title>WYF | What's Your Flavour?</title>
+  <link rel="apple-touch-icon" href="icons/wyf-192.png">
+  <link rel="icon" type="image/png" href="icons/wyf-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="shell">
+  <header>
+    <div class="brand">
+      <img class="logo" src="icons/wyf-192.png" alt="WYF app icon">
+      <div><h1>WYF</h1><small>What's Your Flavour?</small></div>
+    </div>
+    <span class="count" id="count"></span>
+  </header>
+  <nav aria-label="App pages">
+    <button data-tab="plan" class="active">Plan week</button>
+    <button data-tab="recipes">Recipes</button>
+    <button data-tab="shopping">Shopping list</button>
+  </nav>
+  <section id="plan" class="view">
+    <h2>Make this week delicious</h2>
+    <p class="muted">Choose your meals, reuse ingredients and get everything for the Sunday shop.</p>
+    <div class="panel">
+      <div class="formgrid">
+        <label>Dinners this week<select id="numMeals"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option></select></label>
+        <label>Adults<select id="adults"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+        <label>Children<select id="children"><option selected>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+        <label>Meal style<select id="style"><option>Mix</option><option>Healthy</option><option>No preference</option></select></label>
+      </div>
+      <div id="childDetails" hidden>
+        <label>Children's ages / planned serving fractions<input id="childInfo" placeholder="e.g. 4y, ½ adult portion each"></label>
+        <p class="warning">Set how much each child eats before calculating shopping amounts. The app never assumes adult-sized portions.</p>
+        <label>Extra adult-equivalent portions in total<input id="childPortions" type="number" min="0" max="4" step="0.25" value="0"></label>
+      </div>
+      <p class="label">Preferred meats (maximum 2 in any plan)</p>
+      <div class="checks">
+        <label><input type="checkbox" value="chicken" checked> Chicken</label>
+        <label><input type="checkbox" value="turkey" checked> Turkey</label>
+        <label><input type="checkbox" value="beef"> Beef</label>
+        <label><input type="checkbox" value="pork"> Pork</label>
+      </div>
+      <label class="smallcheck"><input id="excludeUnverified" type="checkbox" checked> Exclude recipes with unresolved fish-containing sauces</label>
+      <button class="primary wide" id="generate">✦ Generate my week</button>
+    </div>
+    <div id="planOutput"></div>
+  </section>
+  <section id="recipes" class="view" hidden>
+    <h2>Recipe library</h2>
+    <p class="muted">Browse the saved meals. Tap any recipe for ingredients and cooking steps.</p>
+    <input id="search" type="search" placeholder="Search a meal or ingredient..." aria-label="Search recipes">
+    <div class="formgrid">
+      <select id="filterCategory" aria-label="Filter by style"><option>All styles</option><option>Healthy</option><option>Mix</option><option>Comfort</option></select>
+      <select id="filterMeat" aria-label="Filter by meat"><option>All meats</option><option>Chicken</option><option>Turkey</option><option>Beef</option><option>Pork</option></select>
+    </div>
+    <div id="recipeList" class="cards"></div>
+  </section>
+  <section id="shopping" class="view" hidden>
+    <h2>Your shopping list</h2>
+    <p class="muted">Everything for your meals plus everyday extras. Unspecified original pack sizes stay labelled as such.</p>
+    <div id="shoppingOutput"></div>
+  </section>
+  <footer>WYF · What's Your Flavour? · Saved separately on each iPhone</footer>
+</main>
+<dialog id="detail" aria-label="Recipe details"><button id="closeDetail" class="close" aria-label="Close recipe">×</button><div id="detailBody"></div></dialog>
+<dialog id="extrasDialog" class="extras-dialog" aria-labelledby="extrasTitle">
+  <div class="extras-header">
+    <div>
+      <p class="eyebrow">BEFORE YOU SHOP</p>
+      <h2 id="extrasTitle">Anything else for the shop?</h2>
+      <p class="muted">Add your usual household bits, or anything that isn't in the recipes. Quantities are optional.</p>
+    </div>
+    <button id="closeExtras" class="close" aria-label="Close extras">×</button>
+  </div>
+  <div id="commonExtras"></div>
+  <div class="extras-section">
+    <h3>Something else?</h3>
+    <form id="customExtraForm" class="inline-add">
+      <input id="customExtra" type="text" maxlength="100" autocomplete="off" placeholder="e.g. Batteries, cat food, apples" aria-label="Other item to add">
+      <button type="submit">+ Add</button>
+    </form>
+  </div>
+  <div class="extras-section">
+    <h3>Selected extras <span id="extrasCount" class="textcount"></span></h3>
+    <div id="selectedExtras"><p class="muted">Nothing extra yet. That's fine too!</p></div>
+  </div>
+  <div class="extras-footer">
+    <button id="skipExtras" class="subtle">No extras this week</button>
+    <button id="saveExtras" class="primary">Done · View shopping list →</button>
+  </div>
+</dialog>
+<script src="recipes-packed.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
