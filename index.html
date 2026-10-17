@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/wyf-192.png">
   <link rel="icon" type="image/png" href="icons/wyf-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.4.0">
+  <link rel="stylesheet" href="styles.css?v=1.4.1">
   <style>
     /* Each iPhone remembers its own greeting; no account or server needed. */
     .welcome-heading {display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
@@ -79,10 +79,12 @@
         <label>Meal style<select id="style"><option>Mix</option><option>Healthy</option><option>Comfort</option><option>No preference</option></select></label>
       </div>
       <div id="childDetails" hidden>
-        <label>Children's ages / planned serving fractions<input id="childInfo" placeholder="e.g. 4y, ½ adult portion each"></label>
-        <p class="warning">Set how much each child eats before calculating shopping amounts. The app never assumes adult-sized portions.</p>
-        <label>Extra adult-equivalent portions in total<input id="childPortions" type="number" min="0" max="4" step="0.25" value="0"></label>
+        <h3>How much will each child eat?</h3>
+        <p class="small-hint">Choose their age and usual portion, compared with an adult meal. WYF handles the maths.</p>
+        <div id="childRows"></div>
+        <p id="householdError" class="warning" hidden>Please complete both dropdowns for every child.</p>
       </div>
+      <div id="portionSummary" class="portion-summary" aria-live="polite"></div>
       <p id="meatRule" class="label" aria-live="polite">Allowed meats (up to 3 different types for 5 dinners)</p>
       <p id="meatRuleHint" class="small-hint">Five or more dinners can use up to three meat types.</p>
       <div class="checks">
@@ -92,14 +94,14 @@
         <label><input type="checkbox" value="pork"> Pork</label>
       </div>
       <label class="smallcheck"><input id="excludeUnverified" type="checkbox" checked> Exclude recipes whose sauces still need a fish/seafood label check</label>
-      <p class="small-hint">54 recipes in the library. Source-card pack sizes and unresolved recipe details are labelled, not guessed.</p>
+      <p class="small-hint">54 recipes with supermarket quantities. Some amounts are practical estimates. No recipe photographs.</p>
       <button class="primary wide" id="generate">✦ Generate my week</button>
     </div>
     <div id="planOutput"></div>
   </section>
   <section id="recipes" class="view" hidden>
     <h2>Recipe library</h2>
-    <p class="muted">54 main recipes, with 4 additional versions inside their recipe cards. Food symbols only; no recipe photographs. Meals marked Needs review stay out of automatic plans.</p>
+    <p class="muted">54 recipes, one chosen version of each. Ingredients and cooking amounts adjust to your household. Tap a meal symbol or View to open it.</p>
     <input id="search" type="search" placeholder="Search a meal or ingredient..." aria-label="Search recipes">
     <div class="formgrid">
       <select id="filterCategory" aria-label="Filter by style"><option>All styles</option><option>Healthy</option><option>Mix</option><option>Comfort</option></select>
@@ -109,20 +111,20 @@
   </section>
   <section id="shopping" class="view" hidden>
     <h2>Your shopping list</h2>
-    <p class="muted">Everything for your meals plus everyday extras. Unspecified original pack sizes stay labelled as such.</p>
+    <p class="muted">Your household’s meal ingredients and everyday extras, together in one checklist. Some recipe quantities are practical estimates.</p>
     <div id="shoppingOutput"></div>
   </section>
   <section id="weeks" class="view" hidden>
     <h2>Weeks</h2>
-    <p class="muted">Your locked-in weeks, saved on this iPhone. Open any dinner to cook from the original saved instructions.</p>
+    <p class="muted">Your locked-in weeks, saved on this iPhone. Open a dinner for ingredients and cooking amounts matched to that saved household.</p>
     <div id="weeksOutput"></div>
   </section>
-  <footer>WYF v1.4.0 · What's Your Flavour? · Saved separately on each iPhone
+  <footer>WYF v1.4.1 · What's Your Flavour? · Saved separately on each iPhone
     <div class="actions footer-actions"><button id="checkUpdates" type="button">Check for updates</button><button id="backupDevice" type="button">Back up this device</button></div>
     <p id="updateStatus" aria-live="polite"></p>
   </footer>
 </main>
-<dialog id="detail" aria-label="Recipe details"><button id="closeDetail" class="close" aria-label="Close recipe">×</button><div id="detailBody"></div></dialog>
+<dialog id="detail" aria-label="Recipe details"><div class="detail-toolbar"><button type="button" id="closeDetail" class="close" aria-label="Close recipe">×</button></div><div id="detailBody"></div></dialog>
 <dialog id="extrasDialog" class="extras-dialog" aria-labelledby="extrasTitle">
   <div class="extras-header">
     <div>
@@ -149,9 +151,9 @@
     <button id="saveExtras" class="primary">Lock This Week In →</button>
   </div>
 </dialog>
-<script src="recipes-packed.js?v=1.4.0"></script>
+<script src="recipes-packed.js?v=1.4.1"></script>
 
-<script src="app.js?v=1.4.0"></script>
+<script src="app.js?v=1.4.1"></script>
 <script>
   // Device-specific first name, separate from meal plans and shopping lists.
   (() => {
