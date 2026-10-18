@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/wyf-192.png">
   <link rel="icon" type="image/png" href="icons/wyf-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.4.1">
+  <link rel="stylesheet" href="styles.css?v=1.5.0">
   <style>
     /* Each iPhone remembers its own greeting; no account or server needed. */
     .welcome-heading {display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
@@ -94,20 +94,21 @@
         <label><input type="checkbox" value="pork"> Pork</label>
       </div>
       <label class="smallcheck"><input id="excludeUnverified" type="checkbox" checked> Exclude recipes whose sauces still need a fish/seafood label check</label>
-      <p class="small-hint">54 recipes with supermarket quantities. Some amounts are practical estimates. No recipe photographs.</p>
+      <p class="small-hint">54 recipes with supermarket quantities and original meal illustrations. Some amounts are practical estimates.</p>
       <button class="primary wide" id="generate">✦ Generate my week</button>
     </div>
     <div id="planOutput"></div>
   </section>
   <section id="recipes" class="view" hidden>
     <h2>Recipe library</h2>
-    <p class="muted">54 recipes, one chosen version of each. Ingredients and cooking amounts adjust to your household. Tap a meal symbol or View to open it.</p>
+    <p class="muted">54 recipes, one chosen version of each. Ingredients and cooking amounts adjust to your household. Tap a meal photo or View to open it.</p>
     <input id="search" type="search" placeholder="Search a meal or ingredient..." aria-label="Search recipes">
     <div class="formgrid">
       <select id="filterCategory" aria-label="Filter by style"><option>All styles</option><option>Healthy</option><option>Mix</option><option>Comfort</option></select>
       <select id="filterMeat" aria-label="Filter by meat"><option>All meats</option><option>Chicken</option><option>Turkey</option><option>Beef</option><option>Pork</option></select>
     </div>
     <div id="recipeList" class="cards"></div>
+    <p class="small-hint image-note">Meal images are illustrative and may differ from the finished dish.</p>
   </section>
   <section id="shopping" class="view" hidden>
     <h2>Your shopping list</h2>
@@ -119,7 +120,7 @@
     <p class="muted">Your locked-in weeks, saved on this iPhone. Open a dinner for ingredients and cooking amounts matched to that saved household.</p>
     <div id="weeksOutput"></div>
   </section>
-  <footer>WYF v1.4.1 · What's Your Flavour? · Saved separately on each iPhone
+  <footer>WYF v1.5.0 · What's Your Flavour? · Saved separately on each iPhone
     <div class="actions footer-actions"><button id="checkUpdates" type="button">Check for updates</button><button id="backupDevice" type="button">Back up this device</button></div>
     <p id="updateStatus" aria-live="polite"></p>
   </footer>
@@ -151,9 +152,10 @@
     <button id="saveExtras" class="primary">Lock This Week In →</button>
   </div>
 </dialog>
-<script src="recipes-packed.js?v=1.4.1"></script>
+<script src="recipes-packed.js?v=1.5.0"></script>
+<script src="recipe-images.js?v=1.5.0"></script>
 
-<script src="app.js?v=1.4.1"></script>
+<script src="app.js?v=1.5.0"></script>
 <script>
   // Device-specific first name, separate from meal plans and shopping lists.
   (() => {

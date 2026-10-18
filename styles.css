@@ -88,3 +88,13 @@ nav button{min-width:0;white-space:nowrap;font-size:clamp(11px,3.05vw,13px);padd
 .shopitem b{font-weight:650}.shopitem small{font-size:11px;color:#697467}
 @media(max-width:350px){.shell{padding:10px}nav{padding:4px;gap:0}nav button{font-size:11px}#detail{padding:15px} .child-card .formgrid{grid-template-columns:1fr}}
 @media print{.detail-toolbar,.recipe-guidance,.dish-open{display:none!important}}
+
+/* v1.5.0: lightweight, original recipe photography with emoji fallback */
+.dishpic img{display:block;max-width:100%;max-height:100%;object-position:50% 50%}
+.dishpic img[hidden]{display:none}
+.dishpic-large{background:#f0f3ec}
+#detail .dishpic-large{height:clamp(190px,48vw,315px);margin-bottom:14px}
+.recipe .dishpic{height:112px}
+.image-note{margin-top:18px;padding:8px 2px;text-align:center;color:#64776b}
+@media(max-width:390px){#detail .dishpic-large{height:230px}}
+@media print{.dishpic img{display:none!important}}

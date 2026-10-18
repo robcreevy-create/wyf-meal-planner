@@ -1,5 +1,5 @@
-// WYF v1.4.1. Household data stays on this device. No recipe photographs.
-const WYF_VERSION = '1.4.1';
+// WYF v1.5.0. Approved illustrative food photos. Device-local meal data unchanged.
+const WYF_VERSION = '1.5.0';
 async function loadPackedRecipes(){
   if(!Array.isArray(window.WYF_RECIPES)) throw new Error('Recipe data is missing.');
   return window.WYF_RECIPES;
@@ -31,10 +31,14 @@ function updateMeatRule(){
   if(hint)hint.textContent=`Tick every meat you are happy to eat. WYF uses no more than ${limit} species in the finished plan; you can still tick all four.`;
 }
 
-// Photos deliberately disabled, even if an old recipe-images.js is still hosted.
+// Original, user-approved AI-generated illustrations, keyed by recipe ID, never by recipe order.
+// Keep an emoji fallback if a file is missing, slow or blocked by browser caches.
 function dishMedia(r,large=false,action=''){
-  const content=`<span class="dishfallback" aria-hidden="true">${icon(r)}</span>`;
-  return large ? `<div class="dishpic dishpic-large" role="img" aria-label="Meal symbol, not a photograph">${content}</div>` :
+  const src=(window.WYF_RECIPE_IMAGES || {})[r.id];
+  const fallback=`<span class="dishfallback" aria-hidden="true">${icon(r)}</span>`;
+  const image=src ? `<img src="${clean(src)}" loading="${large?'eager':'lazy'}" decoding="async" alt="${large?`Illustrative photo of ${clean(r.title)}`:''}" onerror="this.remove()">` : '';
+  const content=fallback+image;
+  return large ? `<div class="dishpic dishpic-large">${content}</div>` :
     `<button type="button" class="dishpic dish-open" aria-label="Open ${clean(r.title)}" onclick="${action||`detail('${r.id}')`}">${content}</button>`;
 }
 const titleFirst=s=>{s=String(s??'').trim();return s?s.charAt(0).toLocaleUpperCase('en-IE')+s.slice(1):s;};
