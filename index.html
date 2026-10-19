@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/wyf-192.png">
   <link rel="icon" type="image/png" href="icons/wyf-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.5.0">
+  <link rel="stylesheet" href="styles.css?v=1.5.2">
   <style>
     /* Each iPhone remembers its own greeting; no account or server needed. */
     .welcome-heading {display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
@@ -95,8 +95,35 @@
       </div>
       <label class="smallcheck"><input id="excludeUnverified" type="checkbox" checked> Exclude recipes whose sauces still need a fish/seafood label check</label>
       <p class="small-hint">54 recipes with supermarket quantities and original meal illustrations. Some amounts are practical estimates.</p>
-      <button class="primary wide" id="generate">✦ Generate my week</button>
+      <button class="primary wide" id="generate" type="button">✦ Generate my week</button>
+      <div class="manual-entry">
+        <p class="manual-question">Prefer to make your own selections?</p>
+        <button type="button" class="manual-start wide" id="makeOwnPicks">Make my own picks</button>
+        <p class="small-hint manual-explainer">Choose any recipes, with no meat limits or ingredient-overlap rules. Your household portions and shopping list still work as normal.</p>
+      </div>
     </div>
+    <section id="manualPicker" class="panel manual-picker" aria-labelledby="manualPickerTitle" hidden>
+      <div class="manual-picker-header">
+        <div>
+          <p class="eyebrow">YOUR CHOICE</p>
+          <h2 id="manualPickerTitle">Make your own picks</h2>
+        </div>
+        <button type="button" class="subtle" id="manualClose" aria-label="Cancel making your own picks">Cancel</button>
+      </div>
+      <p class="muted" id="manualDescription">Choose any dinners from the full WYF recipe library.</p>
+      <div class="manual-selected">
+        <h3>Selected dinners <span id="manualCount" class="manual-counter" aria-live="polite">0 of 5</span></h3>
+        <div id="manualSelectedList" aria-live="polite"></div>
+      </div>
+      <label class="manual-search-label" for="manualSearch">Search all 54 recipes</label>
+      <input type="search" id="manualSearch" autocomplete="off" placeholder="Search recipes or ingredients…" aria-label="Search recipes to add">
+      <p class="manual-results-label" id="manualResultsCount" aria-live="polite"></p>
+      <div id="manualResults" class="manual-results"></div>
+      <div class="manual-footer">
+        <button type="button" id="manualCancel" class="subtle">Cancel</button>
+        <button type="button" id="manualConfirm" class="primary" disabled>Choose all dinners first</button>
+      </div>
+    </section>
     <div id="planOutput"></div>
   </section>
   <section id="recipes" class="view" hidden>
@@ -117,10 +144,11 @@
   </section>
   <section id="weeks" class="view" hidden>
     <h2>Weeks</h2>
-    <p class="muted">Your locked-in weeks, saved on this iPhone. Open a dinner for ingredients and cooking amounts matched to that saved household.</p>
+    <p class="muted">Your saved dinners and shopping lists. Checkmarks stay in sync with the main Shopping list on this iPhone. Share a week as a file for someone else to import.</p>
+    <input type="file" id="weekImportFile" accept=".json,application/json" hidden aria-label="Choose a shared WYF week file">
     <div id="weeksOutput"></div>
   </section>
-  <footer>WYF v1.5.0 · What's Your Flavour? · Saved separately on each iPhone
+  <footer>WYF v1.5.2 · What's Your Flavour? · Saved separately on each iPhone
     <div class="actions footer-actions"><button id="checkUpdates" type="button">Check for updates</button><button id="backupDevice" type="button">Back up this device</button></div>
     <p id="updateStatus" aria-live="polite"></p>
   </footer>
@@ -152,10 +180,10 @@
     <button id="saveExtras" class="primary">Lock This Week In →</button>
   </div>
 </dialog>
-<script src="recipes-packed.js?v=1.5.0"></script>
-<script src="recipe-images.js?v=1.5.0"></script>
+<script src="recipes-packed.js?v=1.5.2"></script>
+<script src="recipe-images.js?v=1.5.2"></script>
 
-<script src="app.js?v=1.5.0"></script>
+<script src="app.js?v=1.5.2"></script>
 <script>
   // Device-specific first name, separate from meal plans and shopping lists.
   (() => {

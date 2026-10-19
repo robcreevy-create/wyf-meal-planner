@@ -1,8 +1,8 @@
 {
-  "version": "1.5.0",
+  "version": "1.5.2",
   "recipeFamilies": 54,
   "additionalVariants": 0,
   "recipeSha256": "2216565f66c34c0e19eddd654e1923b19907f0190e6aa24eac64585ebd79a987",
-  "releaseDate": "2026-10-18",
+  "releaseDate": "2026-10-19",
   "recipeImages": 54
 }
