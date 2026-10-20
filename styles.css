@@ -169,3 +169,43 @@ nav button{min-width:0;white-space:nowrap;font-size:clamp(11px,3.05vw,13px);padd
 .week-start-row label{font-weight:700;font-size:13px;color:#355243}
 .week-start-row select{display:block;min-height:44px;width:100%;margin-top:7px;padding:12px 9px;font-size:15px;font-family:inherit;font-weight:400;color:#1e352a;background:#fff;border:1px solid #d6ded6;border-radius:11px}
 .week-start-row .warning{margin-top:7px}
+
+
+/* v1.6.0: Cook Tonight (saved-week cooking, not a new plan) */
+.cook-shortcut[hidden]{display:none!important}
+.cook-shortcut{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #c9dfcc;background:#eff7ed;border-radius:16px;padding:14px 16px;margin:0 0 20px}
+.cook-shortcut strong{font-size:15px;color:#235337}
+.cook-shortcut p{margin:4px 0 0;font-size:12px;color:#627264}
+.cook-shortcut button{flex-shrink:0;min-height:44px;font-size:13px}
+.repeat-hint{margin:8px 0 0;text-align:center;font-size:12px;line-height:1.45}
+.cook-week{background:#287d38;color:white;font-weight:750}
+.saved-dinner-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.saved-dinner-actions button{min-height:44px}
+.cook-dialog{width:min(96vw,680px);max-height:92dvh;overflow:auto;border:0;border-radius:20px;padding:19px 20px 26px;background:#fff;box-shadow:0 25px 100px #0006;color:#173627}
+.cook-dialog::backdrop{background:#132619ba}
+.cook-toolbar{display:flex;justify-content:flex-end;padding-bottom:10px}
+#cookClose{min-width:44px;height:44px;padding:0;font-size:22px;background:#e9f0e8}
+.cook-dialog h2{font-size:23px;line-height:1.2;margin:5px 0 9px}
+.cook-dialog h3{font-size:17px;margin:20px 0 10px}
+.cook-dialog .dishpic-large{width:100%;height:clamp(170px,42vw,260px);margin:9px 0 16px}
+.cook-list{display:grid;gap:9px;margin-top:14px}
+.cook-meal-choice{display:flex;align-items:center;text-align:left;gap:12px;width:100%;padding:12px;min-height:68px;background:#f5f8f2;border:1px solid #dbe7d9}
+.cook-meal-thumb{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;font-size:25px;border-radius:10px;background:#e5f0e1}
+.cook-meal-name{flex:1;min-width:0}
+.cook-meal-name strong{display:block;font-size:14px;line-height:1.3}
+.cook-meal-name small{display:block;font-size:12px;margin-top:4px}
+.cook-back{font-size:13px;margin:0 0 9px;background:#edf4ea;min-height:44px}
+.cook-progress{padding:10px 12px;border-radius:10px;background:#edf5ea;color:#295c3b;font-size:13px;font-weight:750}
+.cook-ingredients{background:#f6f8f3;padding:13px 15px;border-radius:12px;margin:16px 0}
+.cook-ingredients summary{font-size:14px;cursor:pointer;font-weight:750;min-height:24px}
+.cook-step-list{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:9px}
+.cook-step-list li{border:1px solid #dfe9db;border-radius:12px;background:#fff}
+.cook-step-list li.step-done{background:#f0f5ee}
+.cook-step-list label{display:flex;align-items:flex-start;gap:12px;padding:14px;line-height:1.55;font-size:14px;font-weight:450;color:#294639;cursor:pointer}
+.cook-step-list input{width:22px;height:22px;flex:0 0 22px;margin:1px 0 0;accent-color:#287d38}
+.cook-step-list .step-done span{text-decoration:line-through;color:#7d8b80}
+.cook-undo{background:#edf3ee;border:1px solid #bed6c3;color:#286040}
+.cook-footnote{margin:13px 0 0;line-height:1.5}
+.offline-status{font-size:11px;line-height:1.5;color:#637969;margin:8px 0}
+@media(max-width:390px){.cook-shortcut{flex-wrap:wrap}.cook-shortcut button{width:100%}.cook-dialog{padding:13px 14px 20px}.saved-dinner-actions button{flex:1}}
+@media print{.cook-shortcut,.cook-dialog,.offline-status{display:none!important}}

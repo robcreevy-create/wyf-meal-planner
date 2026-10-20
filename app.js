@@ -1,5 +1,5 @@
-// WYF v1.5.4. Clear Monday-only date selector and compact household form.
-const WYF_VERSION = '1.5.4';
+// WYF v1.6.0. Cook Tonight, recent-meal awareness, offline shopping and cooking.
+const WYF_VERSION = '1.6.0';
 async function loadPackedRecipes(){
   if(!Array.isArray(window.WYF_RECIPES)) throw new Error('Recipe data is missing.');
   return window.WYF_RECIPES;
@@ -188,6 +188,18 @@ function eligible(){
     (style!=='Healthy'||categoryOf(r)==='Healthy') &&
     (style!=='Comfort'||categoryOf(r)!=='Healthy'));
 }
+function recentRecipeIds(forMonday,previousWeeks=4){
+  const target=parseLocalDate(forMonday);
+  const ids=new Set();if(!target)return ids;
+  for(const saved of lockedWeeks){
+    const date=parseLocalDate(historicalWeekStart(saved));if(!date)continue;
+    // Compare local calendar weeks, avoiding daylight-saving time differences.
+    const days=Math.round((target.getTime()-date.getTime())/86400000);
+    if(days<7||days>previousWeeks*7)continue;
+    (saved.meals||[]).forEach(r=>{if(r?.id)ids.add(r.id);});
+  }
+  return ids;
+}
 function tokens(r){return new Set(r.ingredients.map(x=>norm(x.name)).filter(x=>x.length>2&&!/water|salt|pepper|oil/.test(x)))}
 function dishType(r){
   const t=r.title.toLowerCase();
@@ -214,11 +226,11 @@ function score(r,selected,style='Mix',target=5){
   }
   return overlap*1.6+variety+favourite+stylePoints+Math.random()*2;
 }
-function bestPool(pool,want,locked=[],style='Mix'){
+function bestPool(pool,want,locked=[],style='Mix',avoid=new Set()){
   const picked=[...locked];
   let options=pool.filter(r=>!picked.some(q=>q.id===r.id));
   while(picked.length<want && options.length){
-    const scored=options.map(r=>({r,s:score(r,picked,style,want)})).sort((a,b)=>b.s-a.s);
+    const scored=options.map(r=>({r,s:score(r,picked,style,want)-(avoid.has(r.id)?60:0)})).sort((a,b)=>b.s-a.s);
     picked.push(scored[0].r);
     options=options.filter(r=>r.id!==scored[0].r.id);
   }
@@ -232,15 +244,8 @@ function allowedSpeciesCombinations(types,limit){
   }
   return sets;
 }
-function generate(){
-  const chosenMonday=validateSelectedWeek();if(!chosenMonday)return;
-  const n=Number($('numMeals').value),kids=Number($('children').value),style=$('style').value;
-  if(![3,4,5,6,7].includes(n)){alert('Choose between 3 and 7 dinners.');return;}
-  if(!requireHousehold())return;
-  updateHousehold();
-  const pool=eligible();
-  if(pool.length<n){alert('Not enough matching recipes. Try selecting more meats or another style.');return;}
-  // At most 2 meat species for 3–4 dinners, at most 3 for 5–7 dinners.
+function buildWeekOptions(pool,n,style,avoid=new Set()){
+  // Meat rules remain unchanged for the automatic generator.
   // Beef-and-pork mixed mince counts as two species, not as one category.
   const types=[...new Set(pool.flatMap(r=>r.meats))];
   const options=[];
@@ -254,17 +259,33 @@ function generate(){
     for(const species of allowed){
       if(seeds.some(r=>r.meats.includes(species)))continue;
       const choices=candidates.filter(r=>r.meats.includes(species)&&!seeds.some(q=>q.id===r.id))
-        .map(r=>({r,points:score(r,seeds,style,n)}))
+        .map(r=>({r,points:score(r,seeds,style,n)-(avoid.has(r.id)?60:0)}))
         .sort((a,b)=>b.points-a.points);
       if(choices.length)seeds.push(choices[0].r);
     }
-    const candidate=bestPool(candidates,n,seeds,style);
+    const candidate=bestPool(candidates,n,seeds,style,avoid);
     if(candidate.length!==n)continue;
     const used=new Set(candidate.flatMap(r=>r.meats));
     const measure=candidate.reduce((sum,r,i)=>sum+score(r,candidate.slice(0,i),style,n),0)
-      +Math.min(used.size,meatLimit(n))*2;
+      +Math.min(used.size,meatLimit(n))*2 - candidate.filter(r=>avoid.has(r.id)).length*60;
     options.push({candidate,measure,used:used.size});
   }
+  return options;
+}
+function generate(){
+  const chosenMonday=validateSelectedWeek();if(!chosenMonday)return;
+  const n=Number($('numMeals').value),kids=Number($('children').value),style=$('style').value;
+  if(![3,4,5,6,7].includes(n)){alert('Choose between 3 and 7 dinners.');return;}
+  if(!requireHousehold())return;
+  updateHousehold();
+  const pool=eligible();
+  if(pool.length<n){alert('Not enough matching recipes. Try selecting more meats or another style.');return;}
+  // Try recipes not used in the four preceding calendar weeks first.
+  // Only permit repeat meals when the household filters leave no viable menu.
+  const recentlyUsed=recentRecipeIds(chosenMonday,4);
+  const freshPool=pool.filter(r=>!recentlyUsed.has(r.id));
+  let options=buildWeekOptions(freshPool,n,style);
+  if(!options.length)options=buildWeekOptions(pool,n,style,recentlyUsed);
   // Prefer at least two species when the couple has allowed multiple meats
   // and such a menu exists. A third species remains optional for larger weeks.
   const hasVariedOption=options.some(o=>o.used>=2);
@@ -272,7 +293,7 @@ function generate(){
   workable.sort((a,b)=>b.measure-a.measure);
   if(!workable.length){alert(`Could not build ${n} dinners using at most ${meatLimit(n)} different meats. Try more eligible meats.`);return;}
   plan=workable[0].candidate.map(r=>r.id);
-  settings={...settings,n,numMeals:n,style,planWeekStart:chosenMonday,preferredMeats:selectedMeats(),excludeFishReview:$('excludeUnverified').checked,planMode:'generated'};
+  settings={...settings,n,numMeals:n,style,planWeekStart:chosenMonday,preferredMeats:selectedMeats(),excludeFishReview:$('excludeUnverified').checked,planMode:'generated',recentRepeatsUsed:plan.filter(id=>recentlyUsed.has(id)).length};
   localStorage.setItem('omp_settings',JSON.stringify(settings));
   save();renderPlan();return true;
 }
@@ -284,7 +305,7 @@ function renderPlan(){
   const heading=`Your ${meals.length} dinners`;
   const summary=manual
     ?`<b>Hand-picked week</b> · ${clean(householdLabel())} · Week of ${clean(weekLabel(selectedWeekStart()))} · No meat limits or overlap rules · Draft on this device`
-    :`<b>${clean(species.join(' + ')||'Vegetarian')}</b> · ${species.length}/${meatLimit(meals.length)} meat types · ${clean(householdLabel())} · Week of ${clean(weekLabel(selectedWeekStart()))} · Draft on this device`;
+    :`<b>${clean(species.join(' + ')||'Vegetarian')}</b> · ${species.length}/${meatLimit(meals.length)} meat types · ${clean(householdLabel())} · Week of ${clean(weekLabel(selectedWeekStart()))} · Draft on this device${Number(settings.recentRepeatsUsed)>0?` · ${settings.recentRepeatsUsed} recent repeat${settings.recentRepeatsUsed===1?'':'s'} needed`:''}`;
   $('planOutput').innerHTML=meals.length
     ?`<div class="sectionhead"><h2>${heading}</h2><button type="button" onclick="${manual?'openManualPicker()':'generate()'}">${manual?'✎ Edit picks':'↻ Regenerate'}</button></div>
       <div class="summary">${summary}</div>
@@ -303,10 +324,15 @@ function swap(i){
     new Set([...currentSpecies,...r.meats]).size<=max
   );
   if(!pool.length){alert('No alternative meets your selected meats, meal style and meat limit. Try another style or more allowed meats.');return;}
+  const recent=recentRecipeIds(selectedWeekStart());
+  const fresh=pool.filter(r=>!recent.has(r.id));
+  const swapChoices=fresh.length?fresh:pool;
   // A one-meal swap must never reshuffle or replace the other chosen dinners.
   const style=$('style').value;
-  const ranked=pool.map(r=>({r,points:score(r,fixed,style,old.length)})).sort((a,b)=>b.points-a.points);
+  const ranked=swapChoices.map(r=>({r,points:score(r,fixed,style,old.length)})).sort((a,b)=>b.points-a.points);
   plan[i]=ranked[0].r.id;
+  settings.recentRepeatsUsed=plan.filter(id=>recent.has(id)).length;
+  try{localStorage.setItem('omp_settings',JSON.stringify(settings));}catch(_){}
   Object.keys(localStorage).filter(k=>k.startsWith('omp_tick_')&&!k.startsWith('omp_tick_extra-')).forEach(k=>localStorage.removeItem(k));
   save();renderPlan();
   if(!$('shopping').hidden)shopping();
@@ -437,7 +463,7 @@ loadPackedRecipes().then(r=>{
   if(Array.isArray(settings.preferredMeats))document.querySelectorAll('.checks input').forEach(x=>x.checked=settings.preferredMeats.includes(x.value));
   if(typeof settings.excludeFishReview==='boolean')$('excludeUnverified').checked=settings.excludeFishReview;
   renderChildDropdowns();updateHousehold(false);householdLoaded=true;
-  updateMeatRule();migratePreviouslyTickedWeeks();renderPlan();library();
+  updateMeatRule();migratePreviouslyTickedWeeks();renderPlan();library();updateCookShortcut();
 }).catch(e=>{$('planOutput').textContent='Could not load the recipe bank or local data. Use Check for updates, or reopen the latest WYF link. Do not clear website data.'});
 
 // ------ WYF everyday shopping add-ons ------
@@ -1095,13 +1121,15 @@ function syncedWeeksView(){
     root.innerHTML=importBar+lockedWeeks.map(w=>`<article class="panel saved-week" data-saved-week-id="${clean(w.id)}">
       <h3>Week of ${clean(w.weekOf)}</h3>
       <p class="muted">${w.meals.length} dinners · ${clean(householdLabel(w.settings))}${w.settings?.planMode==='manual'?' · Hand-picked':''}${w.receivedAt?' · Imported copy':''} · Locked ${clean(weekDate(w.createdAt))}</p>
-      <details><summary>Dinners & cooking instructions</summary>${w.meals.map((r,i)=>`<div class="saved-dinner"><strong>${i+1}. ${clean(r.title)}</strong><p>${clean(r.minutes||'')}</p><button type="button" data-saved-recipe="${clean(w.id)}" data-meal-index="${i}">Ingredients & cooking steps →</button></div>`).join('')}</details>
+      <details><summary>Dinners & cooking instructions</summary>${w.meals.map((r,i)=>`<div class="saved-dinner"><strong>${i+1}. ${clean(r.title)}</strong><p>${clean(r.minutes||'')} · ${w.cooking?.[r.id]?.cookedAt?'✓ Cooked':(w.cooking?.[r.id]?.stepsDone||[]).length+' steps checked'}</p><div class="saved-dinner-actions"><button type="button" data-cook-recipe="${clean(w.id)}" data-cook-index="${i}" class="cook-week">Cook tonight</button><button type="button" data-saved-recipe="${clean(w.id)}" data-meal-index="${i}">Ingredients & cooking steps →</button></div></div>`).join('')}</details>
       <details class="saved-shopping-details"><summary>Saved shopping list</summary>${linkedSavedShopping(w)}</details>
-      <div class="week-actions"><button type="button" class="shop-week" data-shop-week="${clean(w.id)}">Shop this week</button><button type="button" class="share-week" data-share-week="${clean(w.id)}">Share week</button><button type="button" class="delete-week" data-delete-week="${clean(w.id)}">Delete week</button></div>
+      <div class="week-actions"><button type="button" class="cook-week" data-cook-week="${clean(w.id)}">Cook tonight</button><button type="button" class="shop-week" data-shop-week="${clean(w.id)}">Shop this week</button><button type="button" class="share-week" data-share-week="${clean(w.id)}">Share week</button><button type="button" class="delete-week" data-delete-week="${clean(w.id)}">Delete week</button></div>
     </article>`).join('');
   }
   $('importSharedWeek').addEventListener('click',()=>$('weekImportFile').click());
   root.querySelectorAll('[data-saved-recipe]').forEach(b=>b.addEventListener('click',()=>showSavedRecipe(b.dataset.savedRecipe,Number(b.dataset.mealIndex))));
+  root.querySelectorAll('[data-cook-recipe]').forEach(b=>b.addEventListener('click',()=>openCookRecipe(b.dataset.cookRecipe,Number(b.dataset.cookIndex))));
+  root.querySelectorAll('[data-cook-week]').forEach(b=>b.addEventListener('click',()=>openCookPicker(b.dataset.cookWeek)));
   root.querySelectorAll('[data-delete-week]').forEach(b=>b.addEventListener('click',()=>deleteLockedWeek(b.dataset.deleteWeek)));
   root.querySelectorAll('[data-share-week]').forEach(b=>b.addEventListener('click',()=>shareLockedWeek(b.dataset.shareWeek)));
   root.querySelectorAll('[data-shop-week]').forEach(b=>b.addEventListener('click',()=>chooseShoppingWeek(b.dataset.shopWeek)));
@@ -1109,6 +1137,7 @@ function syncedWeeksView(){
     const w=lockedWeeks.find(w=>w.id===inp.closest('.saved-week')?.dataset.savedWeekId);
     if(w)setWeekSavedTick(w,inp.dataset.weekCheck,inp);
   }));
+  updateCookShortcut();
 }
 renderWeeks = syncedWeeksView;
 
@@ -1182,3 +1211,107 @@ async function importWeekFromFile(event){
 }
 $('weekImportFile').addEventListener('change',importWeekFromFile);
 
+
+
+// ------ v1.6.0: Cook Tonight uses the exact saved-week recipe snapshot ------
+// Checkboxes and cooked status persist inside the existing saved week; sharing
+// that week includes its current cooking progress as well as shopping ticks.
+let cookingWeekId=null;
+let cookingMealIndex=null;
+function preferredCookingWeek(){
+  const active=activeShoppingWeek();
+  if(active)return active;
+  return lockedWeeks.find(w=>historicalWeekStart(w)===selectedWeekStart())||lockedWeeks[0]||null;
+}
+function cookStatus(w,r){
+  const raw=w.cooking?.[r.id];
+  return raw&&typeof raw==='object'?raw:{stepsDone:[],cookedAt:null};
+}
+function cookingCompletion(w){return w.meals.filter(r=>!!cookStatus(w,r).cookedAt).length;}
+function updateCookShortcut(){
+  const root=$('cookShortcut');if(!root)return;
+  const w=preferredCookingWeek();root.hidden=!w;
+  if(!w)return;
+  const done=cookingCompletion(w);
+  $('cookShortcutWeek').textContent=`Week of ${w.weekOf} · ${done}/${w.meals.length} dinners cooked`;
+  $('cookShortcutButton').onclick=()=>openCookPicker(w.id);
+}
+function showCookingDialog(){if(!$('cookDialog').open)$('cookDialog').showModal();$('cookDialog').scrollTop=0;}
+function openCookPicker(weekId){
+  const w=lockedWeeks.find(x=>x.id===weekId)||preferredCookingWeek();if(!w)return;
+  cookingWeekId=w.id;cookingMealIndex=null;
+  const completed=cookingCompletion(w);
+  $('cookBody').innerHTML=`<div class="cook-intro"><p class="eyebrow">COOK TONIGHT</p><h2>Week of ${clean(w.weekOf)}</h2><p class="muted">Choose the dinner you're making. ${completed} of ${w.meals.length} marked cooked.</p></div>
+  <div class="cook-list">${w.meals.map((r,i)=>`<button class="cook-meal-choice" type="button" data-pick-cook="${i}"><span class="cook-meal-thumb">${icon(r)}</span><span class="cook-meal-name"><strong>${clean(r.title)}</strong><small>${clean(r.minutes||'')} · ${cookStatus(w,r).cookedAt?'✓ Cooked':(cookStatus(w,r).stepsDone||[]).length+' steps checked'}</small></span><span aria-hidden="true">›</span></button>`).join('')}</div>`;
+  showCookingDialog();
+}
+function openCookRecipe(weekId,index){
+  const w=lockedWeeks.find(x=>x.id===weekId),r=w?.meals?.[index];if(!r)return;
+  cookingWeekId=weekId;cookingMealIndex=index;
+  const state=cookStatus(w,r),factor=Number.isFinite(w.factor)?w.factor:householdFactor(w.settings);
+  const steps=cookSteps(r,factor),done=new Set(Array.isArray(state.stepsDone)?state.stepsDone.filter(Number.isInteger):[]);
+  $('cookBody').innerHTML=`<button type="button" class="cook-back" id="cookBack">‹ All dinners</button><p class="eyebrow">COOK TONIGHT · ${clean(w.weekOf)}</p>
+  ${dishMedia(r,true)}<h2>${clean(r.title)}</h2>
+  <p class="muted">${clean(r.minutes||'')} · For ${clean(householdLabel(w.settings))}</p>
+  <p class="cook-progress" aria-live="polite">${done.size} of ${steps.length} steps checked${state.cookedAt?' · ✓ Cooked':''}</p>
+  <details class="cook-ingredients"><summary>Ingredients & pantry amounts</summary><h3>Ingredients</h3><ul class="ingredients">${(r.ingredients||[]).map(x=>ingredientLine(x,factor)).join('')}</ul><h3>Pantry</h3><ul class="ingredients">${(r.pantry||[]).map(x=>ingredientLine(x,factor)).join('')}</ul></details>
+  <h3>Cooking steps</h3><p class="small-hint">Tick each step as you go. This week's progress stays on this iPhone. Check poultry, mince and sausages reach 75°C at the centre.</p>
+  <ol class="cook-step-list">${steps.map((step,i)=>`<li class="${done.has(i)?'step-done':''}"><label><input type="checkbox" data-cook-step="${i}" ${done.has(i)?'checked':''}><span>${clean(step)}</span></label></li>`).join('')}</ol>
+  <button type="button" class="wide ${state.cookedAt?'cook-undo':'primary'}" id="markMealCooked">${state.cookedAt?'↶ Mark as not cooked':'✓ Mark dinner as cooked'}</button>
+  <p class="small-hint cook-footnote">This is your saved recipe and household quantities, even if your draft plan changes. Your cooking progress is also included when you share this week.</p>`;
+  showCookingDialog();
+}
+function updateCookState(weekId,index,action,step){
+  const w=lockedWeeks.find(x=>x.id===weekId),r=w?.meals?.[index];if(!r)return false;
+  const before=w.cooking?deepCopy(w.cooking):null;
+  const obj=w.cooking??={};
+  const old=cookStatus(w,r);
+  const value={stepsDone:Array.isArray(old.stepsDone)?[...old.stepsDone]:[],cookedAt:old.cookedAt||null};
+  if(action==='step'){
+    const steps=cookSteps(r,Number.isFinite(w.factor)?w.factor:householdFactor(w.settings));
+    if(!Number.isInteger(step)||step<0||step>=steps.length)return false;
+    const checked=new Set(value.stepsDone);checked.has(step)?checked.delete(step):checked.add(step);
+    value.stepsDone=[...checked].sort((a,b)=>a-b);
+  } else if(action==='meal') value.cookedAt=value.cookedAt?null:new Date().toISOString();
+  obj[r.id]=value;
+  if(saveLockedWeeks())return true;
+  if(before===null)delete w.cooking;else w.cooking=before;
+  return false;
+}
+$('cookClose').onclick=()=>$('cookDialog').close();
+$('cookDialog').addEventListener('click',event=>{if(event.target===$('cookDialog'))$('cookDialog').close();});
+$('cookBody').addEventListener('click',event=>{
+  const pick=event.target.closest('[data-pick-cook]');
+  if(pick){openCookRecipe(cookingWeekId,Number(pick.dataset.pickCook));return;}
+  if(event.target.closest('#cookBack')){openCookPicker(cookingWeekId);return;}
+  if(event.target.closest('#markMealCooked')&&Number.isInteger(cookingMealIndex)){
+    if(updateCookState(cookingWeekId,cookingMealIndex,'meal')){openCookRecipe(cookingWeekId,cookingMealIndex);renderWeeks();}
+  }
+});
+$('cookBody').addEventListener('change',event=>{
+  const input=event.target.closest('[data-cook-step]');
+  if(input&&Number.isInteger(cookingMealIndex)){
+    if(updateCookState(cookingWeekId,cookingMealIndex,'step',Number(input.dataset.cookStep))){
+      openCookRecipe(cookingWeekId,cookingMealIndex);renderWeeks();
+    }else input.checked=!input.checked;
+  }
+});
+
+// Offline support: the service worker saves the app shell and the full
+// recipe bank when opened online. Previously viewed photos can be cached on
+// demand. Local saved Weeks and shopping ticks never depend on connectivity.
+function offlineMessage(message){const e=$('offlineStatus');if(e)e.textContent=message;}
+function offlineConnectionNote(){if(!navigator.onLine)offlineMessage('Offline · Saved Weeks, shopping and cooking remain available on this phone when offline setup has completed.');}
+window.addEventListener('offline',offlineConnectionNote);
+window.addEventListener('online',()=>offlineMessage('Online · Your saved Weeks and checklists are stored on this phone.'));
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'})
+      .then(()=>navigator.serviceWorker.ready)
+      .then(()=>{offlineMessage(navigator.onLine?'Offline-ready · Shopping, saved Weeks and cooking instructions are available without a connection.':'Offline · Saved Weeks and recipes are available.');})
+      .catch(()=>offlineMessage('Offline setup unavailable on this browser. Stay online for recipe access.'));
+  });
+}else offlineMessage('Offline access needs Safari or another supported browser over HTTPS.');
+
+const tabBeforeCook = tab;
+tab = function(id){const result=tabBeforeCook(id);if(id==='plan'||id==='weeks')updateCookShortcut();return result;};

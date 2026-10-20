@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/wyf-192.png">
   <link rel="icon" type="image/png" href="icons/wyf-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.5.4">
+  <link rel="stylesheet" href="styles.css?v=1.6.0">
   <style>
     /* Each iPhone remembers its own greeting; no account or server needed. */
     .welcome-heading {display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
@@ -71,6 +71,10 @@
       </form>
     </div>
     <p class="muted">Choose your meals, reuse ingredients and get everything for the Sunday shop.</p>
+    <aside class="cook-shortcut" id="cookShortcut" hidden aria-label="Cook a saved dinner">
+      <div><strong>Ready to cook?</strong><p id="cookShortcutWeek"></p></div>
+      <button type="button" id="cookShortcutButton" class="primary">Cook tonight →</button>
+    </aside>
     <div class="panel">
       <div class="formgrid">
         <label>Dinners this week<select id="numMeals"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option></select></label>
@@ -101,6 +105,7 @@
       <label class="smallcheck"><input id="excludeUnverified" type="checkbox" checked> Exclude recipes whose sauces still need a fish/seafood label check</label>
       <p class="small-hint">54 recipes with supermarket quantities and original meal illustrations. Some amounts are practical estimates.</p>
       <button class="primary wide" id="generate" type="button">✦ Generate my week</button>
+      <p class="small-hint repeat-hint">Uses saved-week history to avoid dinners from the previous four weeks where possible.</p>
       <div class="manual-entry">
         <p class="manual-question">Prefer to make your own selections?</p>
         <button type="button" class="manual-start wide" id="makeOwnPicks">Make my own picks</button>
@@ -153,11 +158,12 @@
     <input type="file" id="weekImportFile" accept=".json,application/json" hidden aria-label="Choose a shared WYF week file">
     <div id="weeksOutput"></div>
   </section>
-  <footer>WYF v1.5.4 · What's Your Flavour? · Saved separately on each iPhone
+  <footer>WYF v1.6.0 · What's Your Flavour? · Saved separately on each iPhone
     <div class="actions footer-actions"><button id="checkUpdates" type="button">Check for updates</button><button id="backupDevice" type="button">Back up this device</button><button id="restoreBackup" type="button">Restore from backup</button></div>
     <input type="file" id="restoreBackupFile" accept=".json,application/json" hidden aria-label="Choose a WYF device backup JSON file">
     <p class="restore-hint">Restoring replaces this phone's saved WYF data. Back up the current device first.</p>
     <p id="updateStatus" aria-live="polite"></p>
+    <p id="offlineStatus" class="offline-status" aria-live="polite">Preparing offline shopping and cooking access…</p>
   </footer>
 </main>
 <dialog id="detail" aria-label="Recipe details"><div class="detail-toolbar"><button type="button" id="closeDetail" class="close" aria-label="Close recipe">×</button></div><div id="detailBody"></div></dialog>
@@ -187,10 +193,14 @@
     <button id="saveExtras" class="primary">Lock This Week In →</button>
   </div>
 </dialog>
-<script src="recipes-packed.js?v=1.5.4"></script>
-<script src="recipe-images.js?v=1.5.4"></script>
+<dialog id="cookDialog" class="cook-dialog" aria-label="Cook Tonight">
+  <div class="cook-toolbar"><button type="button" id="cookClose" aria-label="Close Cook Tonight">×</button></div>
+  <div id="cookBody"></div>
+</dialog>
+<script src="recipes-packed.js?v=1.6.0"></script>
+<script src="recipe-images.js?v=1.6.0"></script>
 
-<script src="app.js?v=1.5.4"></script>
+<script src="app.js?v=1.6.0"></script>
 <script>
   // Device-specific first name, separate from meal plans and shopping lists.
   (() => {
