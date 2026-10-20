@@ -153,3 +153,14 @@ nav button{min-width:0;white-space:nowrap;font-size:clamp(11px,3.05vw,13px);padd
 .share-week{background:#ebf6eb;border:1px solid #9cc7a4;color:#22643a;font-weight:750}
 .saved-shopping-details .shopitem{padding:11px 0}
 @media print{.week-actions,.week-import-bar,.linked-week-note{display:none!important}}
+
+/* v1.5.3: deliberate Monday planning and safe restore controls */
+.week-start-row{margin:13px 0 17px;background:#f4f8f2;border:1px solid #e0e9de;border-radius:13px;padding:13px 14px}
+.week-start-row label{font-weight:750;font-size:14px}
+.week-start-row input[type=date]{display:block;width:100%;max-width:290px;margin-top:8px;min-height:46px;border:1px solid #cedacf;border-radius:10px;padding:10px;background:#fff;color:#183629;font-size:16px;font-family:inherit}
+.week-start-row .small-hint{margin:9px 0 0;line-height:1.5}
+.week-start-row .warning{margin-bottom:0;font-weight:650}
+.restore-hint{font-size:11px;line-height:1.5;margin-top:7px}
+.shop-week{background:#dcece0;color:#205d37;font-weight:750}
+@media(max-width:380px){.week-start-row input[type=date]{max-width:100%}}
+@media print{.restore-hint,.week-start-row{display:none!important}}

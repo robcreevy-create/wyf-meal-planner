@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/wyf-192.png">
   <link rel="icon" type="image/png" href="icons/wyf-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.5.2">
+  <link rel="stylesheet" href="styles.css?v=1.5.3">
   <style>
     /* Each iPhone remembers its own greeting; no account or server needed. */
     .welcome-heading {display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
@@ -78,6 +78,11 @@
         <label>Children<select id="children"><option selected>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
         <label>Meal style<select id="style"><option>Mix</option><option>Healthy</option><option>Comfort</option><option>No preference</option></select></label>
       </div>
+      <div class="week-start-row">
+        <label for="weekStart">Week commencing (Monday)<input type="date" id="weekStart" required aria-describedby="weekStartHint weekStartWarning"></label>
+        <p class="small-hint" id="weekStartHint">Planning next week's dinners on Sunday? Choose tomorrow's Monday. Your saved shopping list stays linked after the week changes.</p>
+        <p class="warning" id="weekStartWarning" hidden>Please select a Monday, not another day of the week.</p>
+      </div>
       <div id="childDetails" hidden>
         <h3>How much will each child eat?</h3>
         <p class="small-hint">Choose their age and usual portion, compared with an adult meal. WYF handles the maths.</p>
@@ -99,7 +104,7 @@
       <div class="manual-entry">
         <p class="manual-question">Prefer to make your own selections?</p>
         <button type="button" class="manual-start wide" id="makeOwnPicks">Make my own picks</button>
-        <p class="small-hint manual-explainer">Choose any recipes, with no meat limits or ingredient-overlap rules. Your household portions and shopping list still work as normal.</p>
+        <p class="small-hint manual-explainer">Choose your own recipes, with no meat limits or ingredient-overlap rules. Your household portions and shopping list still work as normal. Fish/seafood label exclusions remain in place.</p>
       </div>
     </div>
     <section id="manualPicker" class="panel manual-picker" aria-labelledby="manualPickerTitle" hidden>
@@ -148,8 +153,10 @@
     <input type="file" id="weekImportFile" accept=".json,application/json" hidden aria-label="Choose a shared WYF week file">
     <div id="weeksOutput"></div>
   </section>
-  <footer>WYF v1.5.2 · What's Your Flavour? · Saved separately on each iPhone
-    <div class="actions footer-actions"><button id="checkUpdates" type="button">Check for updates</button><button id="backupDevice" type="button">Back up this device</button></div>
+  <footer>WYF v1.5.3 · What's Your Flavour? · Saved separately on each iPhone
+    <div class="actions footer-actions"><button id="checkUpdates" type="button">Check for updates</button><button id="backupDevice" type="button">Back up this device</button><button id="restoreBackup" type="button">Restore from backup</button></div>
+    <input type="file" id="restoreBackupFile" accept=".json,application/json" hidden aria-label="Choose a WYF device backup JSON file">
+    <p class="restore-hint">Restoring replaces this phone's saved WYF data. Back up the current device first.</p>
     <p id="updateStatus" aria-live="polite"></p>
   </footer>
 </main>
@@ -180,10 +187,10 @@
     <button id="saveExtras" class="primary">Lock This Week In →</button>
   </div>
 </dialog>
-<script src="recipes-packed.js?v=1.5.2"></script>
-<script src="recipe-images.js?v=1.5.2"></script>
+<script src="recipes-packed.js?v=1.5.3"></script>
+<script src="recipe-images.js?v=1.5.3"></script>
 
-<script src="app.js?v=1.5.2"></script>
+<script src="app.js?v=1.5.3"></script>
 <script>
   // Device-specific first name, separate from meal plans and shopping lists.
   (() => {

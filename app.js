@@ -1,5 +1,5 @@
-// WYF v1.5.1. Add unrestricted DIY week selection; device-local data preserved.
-const WYF_VERSION = '1.5.2';
+// WYF v1.5.3. Reliable week dates, active shopping, restore, dietary review.
+const WYF_VERSION = '1.5.3';
 async function loadPackedRecipes(){
   if(!Array.isArray(window.WYF_RECIPES)) throw new Error('Recipe data is missing.');
   return window.WYF_RECIPES;
@@ -13,6 +13,64 @@ function resolveRecipe(base){ return base; }
 
 const $=id=>document.getElementById(id),clean=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=s=>s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9 ]/g,'').replace(/\b(irish|diced|dry|dried|fresh|sliced|baby|brown|grated|italian style|style|units|cloves|unit|clove)\b/g,'').replace(/\s+/g,' ').trim();
+
+// Plan start dates use local calendar parts at midday, avoiding UTC/DST drift.
+function localDateISO(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
+function parseLocalDate(iso){
+  if(typeof iso!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(iso))return null;
+  const [y,m,d]=iso.split('-').map(Number),x=new Date(y,m-1,d,12);
+  return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d?x:null;
+}
+function validWeekStart(iso){const d=parseLocalDate(iso);return !!d&&d.getDay()===1;}
+function upcomingWeekStart(today=new Date()){
+  const d=new Date(today.getFullYear(),today.getMonth(),today.getDate(),12);
+  d.setDate(d.getDate()+(8-d.getDay())%7);
+  return localDateISO(d);
+}
+function mondayOnOrBefore(date){
+  const d=new Date(date.getFullYear(),date.getMonth(),date.getDate(),12);
+  d.setDate(d.getDate()-(d.getDay()+6)%7);return localDateISO(d);
+}
+// On a new planning visit, don't leave the picker silently stuck on an old
+// Monday. Keep upcoming choices and still-unlocked current-week drafts.
+function suggestedWeekStart(remembered,today=new Date(),alreadyLocked=false){
+  const upcoming=upcomingWeekStart(today),current=mondayOnOrBefore(today);
+  if(!validWeekStart(remembered)||remembered<current)return upcoming;
+  if(today.getDay()===0 && remembered===current && alreadyLocked)return upcoming;
+  return remembered;
+}
+function weekLabel(iso){
+  const d=parseLocalDate(iso);
+  return d?d.toLocaleDateString('en-IE',{day:'numeric',month:'long',year:'numeric'}):'';
+}
+function historicalWeekStart(w){
+  if(validWeekStart(w?.weekStart))return w.weekStart;
+  // Older WYF files kept only a human-readable '19 October 2026' label.
+  const text=String(w?.weekOf||'');
+  const months=['january','february','march','april','may','june','july','august','september','october','november','december'];
+  const m=text.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/),n=m?months.indexOf(m[2].toLowerCase()):-1;
+  if(m&&n>=0){const d=parseLocalDate(`${m[3]}-${String(n+1).padStart(2,'0')}-${String(Number(m[1])).padStart(2,'0')}`);if(d)return mondayOnOrBefore(d);}
+  const created=new Date(w?.createdAt);
+  return Number.isFinite(created.getTime())?mondayOnOrBefore(created):null;
+}
+function selectedWeekStart(){return $('weekStart')?.value||settings.planWeekStart||upcomingWeekStart();}
+function validateSelectedWeek(){
+  const day=selectedWeekStart();
+  if(validWeekStart(day))return day;
+  alert('Choose a valid Monday for the week you want to plan.');
+  $('weekStart')?.focus();return null;
+}
+function savePlanWeekChoice(){
+  const iso=$('weekStart').value;
+  if(!validWeekStart(iso)){
+    $('weekStartWarning').hidden=false;return;
+  }
+  $('weekStartWarning').hidden=true;
+  settings={...settings,planWeekStart:iso};
+  try{localStorage.setItem('omp_settings',JSON.stringify(settings));}catch(_){alert('Could not save the week date. Please check device storage.');}
+  renderPlan();
+}
+
 function icon(r){let t=r.title.toLowerCase();return /pasta|rigatoni|linguine|spaghetti|orzo|noodles/.test(t)?'🍝':/burger/.test(t)?'🍔':/curry|korma|jalfrezi|thai/.test(t)?'🍛':/taco|fajita|enchilada|tortilla|wrap|flatbread/.test(t)?'🌮':/stew|chilli|pie|stroganoff/.test(t)?'🥘':'🍽️'}
 
 // Category labels are kept intact for the recipe detail view. For menu filtering,
@@ -158,6 +216,7 @@ function allowedSpeciesCombinations(types,limit){
   return sets;
 }
 function generate(){
+  const chosenMonday=validateSelectedWeek();if(!chosenMonday)return;
   const n=Number($('numMeals').value),kids=Number($('children').value),style=$('style').value;
   if(![3,4,5,6,7].includes(n)){alert('Choose between 3 and 7 dinners.');return;}
   if(!requireHousehold())return;
@@ -196,7 +255,7 @@ function generate(){
   workable.sort((a,b)=>b.measure-a.measure);
   if(!workable.length){alert(`Could not build ${n} dinners using at most ${meatLimit(n)} different meats. Try more eligible meats.`);return;}
   plan=workable[0].candidate.map(r=>r.id);
-  settings={...settings,n,numMeals:n,style,preferredMeats:selectedMeats(),excludeFishReview:$('excludeUnverified').checked,planMode:'generated'};
+  settings={...settings,n,numMeals:n,style,planWeekStart:chosenMonday,preferredMeats:selectedMeats(),excludeFishReview:$('excludeUnverified').checked,planMode:'generated'};
   localStorage.setItem('omp_settings',JSON.stringify(settings));
   save();renderPlan();return true;
 }
@@ -207,8 +266,8 @@ function renderPlan(){
   const species=[...new Set(meals.flatMap(r=>r.meats))];
   const heading=`Your ${meals.length} dinners`;
   const summary=manual
-    ?`<b>Hand-picked week</b> · ${clean(householdLabel())} · Any mix of meats, no ingredient-overlap rules · Draft on this device`
-    :`<b>${clean(species.join(' + ')||'Vegetarian')}</b> · ${species.length}/${meatLimit(meals.length)} meat types · ${clean(householdLabel())} · Draft on this device`;
+    ?`<b>Hand-picked week</b> · ${clean(householdLabel())} · Week of ${clean(weekLabel(selectedWeekStart()))} · No meat limits or overlap rules · Draft on this device`
+    :`<b>${clean(species.join(' + ')||'Vegetarian')}</b> · ${species.length}/${meatLimit(meals.length)} meat types · ${clean(householdLabel())} · Week of ${clean(weekLabel(selectedWeekStart()))} · Draft on this device`;
   $('planOutput').innerHTML=meals.length
     ?`<div class="sectionhead"><h2>${heading}</h2><button type="button" onclick="${manual?'openManualPicker()':'generate()'}">${manual?'✎ Edit picks':'↻ Regenerate'}</button></div>
       <div class="summary">${summary}</div>
@@ -336,6 +395,7 @@ async function shareList(){let t=[...document.querySelectorAll('.shopgroup')].ma
 $('children').onchange=()=>{renderChildDropdowns();updateHousehold();};
 $('adults').onchange=()=>updateHousehold();
 $('numMeals').addEventListener('change',updateMeatRule);
+$('weekStart').addEventListener('change',savePlanWeekChoice);
 $('generate').onclick=()=>generate();
 ['search','filterCategory','filterMeat'].forEach(id=>$(id).addEventListener('input',library));
 loadPackedRecipes().then(r=>{
@@ -353,6 +413,8 @@ loadPackedRecipes().then(r=>{
   if(!$('children').value)$('children').value='0';
   if(!$('style').value)$('style').value='Mix';
   if(!$('numMeals').value)$('numMeals').value='5';
+  const recentlyLocked=lockedWeeks.some(w=>historicalWeekStart(w)===settings.planWeekStart);
+  $('weekStart').value=suggestedWeekStart(settings.planWeekStart,new Date(),recentlyLocked);
   childProfiles=Array.isArray(settings.childProfiles)?deepCopy(settings.childProfiles):[];
   if(Array.isArray(settings.preferredMeats))document.querySelectorAll('.checks input').forEach(x=>x.checked=settings.preferredMeats.includes(x.value));
   if(typeof settings.excludeFishReview==='boolean')$('excludeUnverified').checked=settings.excludeFishReview;
@@ -459,7 +521,7 @@ $('saveExtras').onclick=()=>finishExtras();
 // the user goes straight to the Shopping tab. Swapping a meal retains extras.
 const originalTab = tab;
 tab = function(id) {
-  if(id==='shopping' && getPlan().length && !extrasReviewed) { openExtras(); return; }
+  if(id==='shopping' && getPlan().length && !extrasReviewed && !activeShoppingWeek()) { openExtras(); return; }
   return originalTab(id);
 };
 const originalGenerate = generate;
@@ -472,6 +534,7 @@ generate = function(){
     Object.keys(localStorage).filter(k=>k.startsWith('omp_tick_')).forEach(k=>localStorage.removeItem(k));
     persistExtras();
     cancelManualPicks();
+    markActiveWeek(null); // A newly generated plan is a separate draft.
   }
   return succeeded;
 };
@@ -523,7 +586,7 @@ shareList = async function() {
 
 $('generate').onclick=()=>generate();
 function exportDeviceBackup(){
-  const data={};Object.keys(localStorage).filter(k=>k.startsWith('omp_')||k==='wyf_device_profile'||k==='wyf_recipe_variants').forEach(k=>data[k]=localStorage.getItem(k));
+  const data={};Object.keys(localStorage).filter(k=>isWYFBackupKey(k)).forEach(k=>data[k]=localStorage.getItem(k));
   const blob=new Blob([JSON.stringify({app:'WYF',version:WYF_VERSION,createdAt:new Date().toISOString(),data},null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='WYF-device-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
@@ -543,6 +606,69 @@ async function checkForUpdates(){
 $('backupDevice').onclick=exportDeviceBackup;
 $('checkUpdates').onclick=checkForUpdates;
 
+// Restore requires an intentional local file selection, strict structure checks,
+// explicit confirmation and rollback if the browser refuses the write.
+const RESTORE_LIMIT_BYTES=10*1024*1024;
+function isWYFBackupKey(key){
+  return /^omp_[a-z0-9_-]{1,120}$/i.test(key)||
+    ['wyf_device_profile','wyf_recipe_variants','wyf_v141_backup','wyf_v141_migrated','wyf_v152_check_migrated'].includes(key);
+}
+function validateDeviceBackup(backup){
+  if(!backup||backup.app!=='WYF'||!backup.data||typeof backup.data!=='object'||Array.isArray(backup.data))throw new Error('Not a WYF device backup.');
+  if(typeof backup.version!=='string'||!/^\d+\.\d+\.\d+$/.test(backup.version))throw new Error('Invalid backup version.');
+  const entries=Object.entries(backup.data);
+  if(!entries.length||entries.length>2000)throw new Error('The backup has no valid data or too many entries.');
+  const data={};
+  for(const [key,value] of entries){
+    if(!isWYFBackupKey(key)||typeof value!=='string'||value.length>RESTORE_LIMIT_BYTES)throw new Error('Unexpected backup entry: '+key);
+    if(key.startsWith('omp_tick_')&&value!=='yes'&&value!=='no')throw new Error('Invalid shopping tick.');
+    if(key==='omp_active_locked_week'&&!/^week-[a-z0-9-]{5,100}$/i.test(value))throw new Error('Invalid active-week ID.');
+    if(['omp_plan','omp_favs','omp_extras','omp_locked_weeks'].includes(key)){
+      const val=JSON.parse(value);
+      if(!Array.isArray(val)||val.length>300)throw new Error('Invalid '+key+' array.');
+      if(key==='omp_locked_weeks'&&val.some(w=>!w||typeof w.id!=='string'||!Array.isArray(w.meals)||!Array.isArray(w.shopping)||!Array.isArray(w.extras)))throw new Error('Incomplete saved week.');
+    }
+    if(['omp_settings','omp_extras_history','wyf_recipe_variants','wyf_v141_backup'].includes(key)){
+      const val=JSON.parse(value);
+      if(!val||typeof val!=='object'||Array.isArray(val))throw new Error('Invalid '+key+' object.');
+    }
+    if(key==='omp_extras_reviewed'&&typeof JSON.parse(value)!=='boolean')throw new Error('Invalid extras status.');
+    data[key]=value;
+  }
+  if(!Array.isArray(JSON.parse(data.omp_locked_weeks||'[]')))throw new Error('Invalid weeks.');
+  return data;
+}
+async function restoreDeviceBackup(event){
+  const field=event.target,file=field.files?.[0];field.value='';
+  if(!file)return;
+  if(file.size>RESTORE_LIMIT_BYTES){alert('This backup is too large. No data was changed.');return;}
+  let data;
+  try{data=validateDeviceBackup(JSON.parse(await file.text()));}
+  catch(e){alert('Backup not restored: '+String(e?.message||'Unreadable file').replace(/\.$/,'')+'. Your current WYF data is unchanged.');return;}
+  const savedWeeks=JSON.parse(data.omp_locked_weeks||'[]').length;
+  if(!confirm(`Restore this WYF backup (${savedWeeks} saved week${savedWeeks===1?'':'s'})? This REPLACES this iPhone's current WYF plans, shopping ticks, favourites and saved weeks. Back up your current device first if needed.`))return;
+  const current={};
+  for(const key of Object.keys(localStorage))if(isWYFBackupKey(key))current[key]=localStorage.getItem(key);
+  try{
+    for(const key of Object.keys(current))localStorage.removeItem(key);
+    for(const [key,value] of Object.entries(data))localStorage.setItem(key,value);
+    // An earlier backup needs its original v1.5.2 tick migration run again.
+    if(!Object.hasOwn(data,'wyf_v152_check_migrated'))localStorage.removeItem('wyf_v152_check_migrated');
+  }catch(e){
+    try{
+      for(const key of Object.keys(localStorage))if(isWYFBackupKey(key))localStorage.removeItem(key);
+      for(const [key,value] of Object.entries(current))localStorage.setItem(key,value);
+      alert('Storage was unavailable. Your previous WYF information has been restored.');
+    }catch(_){alert('Restore failed and browser storage may be incomplete. Keep both backup files safe and do not clear site data.');}
+    return;
+  }
+  alert('WYF backup restored. The app will reload with your saved data.');
+  location.reload();
+}
+$('restoreBackup').onclick=()=>$('restoreBackupFile').click();
+$('restoreBackupFile').addEventListener('change',restoreDeviceBackup);
+
+
 
 // ------ v1.4.1: immutable, device-local locked week snapshots ------
 // Each week contains full recipe data, shopping allocations and household extras.
@@ -552,18 +678,19 @@ if(!Array.isArray(lockedWeeks)) lockedWeeks=[];
 lockedWeeks=lockedWeeks.filter(w=>w&&typeof w.id==='string'&&Array.isArray(w.meals));
 const deepCopy=x=>JSON.parse(JSON.stringify(x));
 function weekDate(iso){return new Date(iso).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'});}
-function weekMonday(date){let d=new Date(date);d.setHours(12,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7);return d.toLocaleDateString('en-IE',{day:'numeric',month:'long',year:'numeric'});}
+function weekMonday(date){return weekLabel(mondayOnOrBefore(date));}
 function weekFingerprint(meals){return JSON.stringify({ids:meals.map(r=>[r.id,r.variantId||'',r.dataVersion||WYF_VERSION]),household:{adults:settings.adults,children:settings.children,childPortions:settings.childPortions},extras:householdExtras.map(e=>({id:e.id,note:e.note})).sort((a,b)=>a.id.localeCompare(b.id))});}
 function lockThisWeek(){
   if(!requireHousehold())return;
   updateHousehold();
+  const monday=validateSelectedWeek();if(!monday)return;
   const meals=getPlan();if(!meals.length){tab('plan');return;}
   const fingerprint=weekFingerprint(meals);
-  const prior=lockedWeeks.find(w=>w.fingerprint===fingerprint&&w.weekOf===weekMonday(new Date()));
-  if(prior){tab('shopping');alert('This exact week is already saved in Weeks. No duplicate was created.');return;}
+  const prior=lockedWeeks.find(w=>historicalWeekStart(w)===monday&&sameShoppingContext(w));
+  if(prior){markActiveWeek(prior);originalTab('shopping');alert('This week is already saved in Weeks. No duplicate was created.');return;}
   const now=new Date();
   const factor=householdFactor();
-  const record={id:'week-'+now.getTime()+'-'+Math.random().toString(36).slice(2,7),createdAt:now.toISOString(),weekOf:weekMonday(now),fingerprint,
+  const record={id:'week-'+now.getTime()+'-'+Math.random().toString(36).slice(2,7),createdAt:now.toISOString(),weekStart:monday,weekOf:weekLabel(monday),fingerprint,
     schemaVersion:2,appVersion:WYF_VERSION,meals:deepCopy(meals),settings:deepCopy(settings),extras:deepCopy(householdExtras),factor,
     shopping:deepCopy(collectShopping(meals,factor)),checks:{}};
   lockedWeeks.unshift(record);
@@ -606,7 +733,11 @@ function showSavedRecipe(id,index){
 function deleteLockedWeek(id){
   const w=lockedWeeks.find(w=>w.id===id);if(!w)return;
   if(!confirm(`Delete the saved week of ${w.weekOf}? This cannot be undone. Your recipe library and current meal plan will not be deleted.`))return;
-  const before=lockedWeeks;lockedWeeks=lockedWeeks.filter(x=>x.id!==id);if(saveLockedWeeks())renderWeeks();else lockedWeeks=before;
+  const before=lockedWeeks;lockedWeeks=lockedWeeks.filter(x=>x.id!==id);
+  if(saveLockedWeeks()){
+    if(localStorage.getItem(ACTIVE_WEEK_KEY)===id)markActiveWeek(null);
+    renderWeeks();
+  }else lockedWeeks=before;
 }
 const tabBeforeWeeks=tab;
 tab=function(id){if(id==='weeks'){originalTab(id);renderWeeks();return;}return tabBeforeWeeks(id);};
@@ -641,19 +772,21 @@ function cancelManualPicks(){
   manualDraft=[];
   manualReplaceIndex=null;
 }
+function manualEligible(r){return !!r&&!r.reviewRequired&&(!$('excludeUnverified').checked||!r.fishReview);}
 function renderManualPicker(){
   if($('manualPicker').hidden)return;
   const n=manualTarget(),total=recipes.length;
-  $('manualDescription').textContent=`Choose ${n} different dinners from all ${total} recipes. Your meat and style filters do not apply here.`;
+  const safeTotal=recipes.filter(manualEligible).length;
+  $('manualDescription').textContent=`Choose ${n} dinners from ${safeTotal} available recipes. No meat-count, style or ingredient-overlap limits. The fish/seafood sauce-label exclusion above still applies.`;
   $('manualCount').textContent=`${manualDraft.length} of ${n}`;
   $('manualSelectedList').innerHTML=manualDraft.length
     ?manualDraft.map((id,index)=>{
       const r=recipes.find(r=>r.id===id);
       if(!r)return '';
-      return `<div class="manual-picked-row"><span class="manual-pick-number">${index+1}</span><span class="manual-picked-title">${clean(r.title)}</span><button type="button" data-manual-remove="${clean(id)}" aria-label="Remove ${clean(r.title)}">Remove</button></div>`;
+      return `<div class="manual-picked-row"><span class="manual-pick-number">${index+1}</span><span class="manual-picked-title">${clean(r.title)}${manualEligible(r)?'':' · ⚠ Not available with current label-check settings'}</span><button type="button" data-manual-remove="${clean(id)}" aria-label="Remove ${clean(r.title)}">Remove</button></div>`;
     }).join('')
     :`<p class="manual-empty">No dinners picked yet. Add your favourites below.</p>`;
-  const ready=manualDraft.length===n && new Set(manualDraft).size===n;
+  const ready=manualDraft.length===n && new Set(manualDraft).size===n && manualDraft.every(id=>manualEligible(recipes.find(r=>r.id===id)));
   $('manualConfirm').disabled=!ready;
   const remaining=n-manualDraft.length;
   $('manualConfirm').textContent=ready?`Use these ${n} dinners →`:remaining<0?`Remove ${-remaining} dinner${remaining===-1?'':'s'}`:`Choose ${remaining} more dinner${remaining===1?'':'s'}`;
@@ -664,6 +797,7 @@ function renderManualResults(){
   const query=$('manualSearch').value.toLocaleLowerCase().trim();
   const terms=query.split(/\s+/).filter(Boolean);
   const matches=recipes.filter(r=>{
+    if(!manualEligible(r))return false;
     const haystack=[r.title,r.subtitle,r.category,...r.meats,...r.ingredients.map(i=>i.name)].join(' ').toLocaleLowerCase();
     return terms.every(t=>haystack.includes(t));
   });
@@ -676,7 +810,7 @@ function renderManualResults(){
   }).join('') || '<p class="muted">No matching recipes. Try another search.</p>';
 }
 function addManualPick(id){
-  if(!recipes.some(r=>r.id===id)||manualDraft.includes(id)||manualDraft.length>=manualTarget())return;
+  if(!manualEligible(recipes.find(r=>r.id===id))||manualDraft.includes(id)||manualDraft.length>=manualTarget())return;
   if(Number.isInteger(manualReplaceIndex)){
     manualDraft.splice(manualReplaceIndex,0,id);
     manualReplaceIndex=null;
@@ -693,11 +827,12 @@ function removeManualPick(id){
 function saveManualPicks(){
   const n=manualTarget();
   if(!requireHousehold())return;
-  if(manualDraft.length!==n||new Set(manualDraft).size!==n||manualDraft.some(id=>!recipes.some(r=>r.id===id))){
+  const monday=validateSelectedWeek();if(!monday)return;
+  if(manualDraft.length!==n||new Set(manualDraft).size!==n||manualDraft.some(id=>!manualEligible(recipes.find(r=>r.id===id)))){
     alert(`Please select ${n} different dinners first.`);return;
   }
   const oldPlan=[...plan],oldSettings={...settings};
-  const newSettings={...settings,n,numMeals:n,style:$('style').value,preferredMeats:selectedMeats(),excludeFishReview:$('excludeUnverified').checked,planMode:'manual'};
+  const newSettings={...settings,n,numMeals:n,style:$('style').value,planWeekStart:monday,preferredMeats:selectedMeats(),excludeFishReview:$('excludeUnverified').checked,planMode:'manual'};
   try{
     localStorage.setItem('omp_plan',JSON.stringify(manualDraft));
     localStorage.setItem('omp_settings',JSON.stringify(newSettings));
@@ -716,6 +851,7 @@ function saveManualPicks(){
   Object.keys(localStorage).filter(k=>k.startsWith('omp_tick_')).forEach(k=>localStorage.removeItem(k));
   persistExtras();
   cancelManualPicks();
+  markActiveWeek(null); // A new DIY plan has its own checklist.
   renderPlan();
   if(typeof $('planOutput').scrollIntoView==='function') $('planOutput').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -731,6 +867,7 @@ $('manualResults').addEventListener('click',e=>{
   const b=e.target.closest('[data-manual-add]');if(b)addManualPick(b.dataset.manualAdd);
 });
 $('numMeals').addEventListener('change',renderManualPicker);
+$('excludeUnverified').addEventListener('change',()=>{if(!$('manualPicker').hidden)renderManualPicker();});
 
 // ------ WYF v1.5.2: one checklist per locked week + optional offline sharing ------
 // A saved week owns its checklist. The Shopping tab and Weeks tab are merely
@@ -760,16 +897,19 @@ function sameShoppingContext(w){
   return JSON.stringify(signature(w.extras))===JSON.stringify(signature(householdExtras));
 }
 function activeShoppingWeek(){
-  const today=weekMonday(new Date());
   const activeId=localStorage.getItem(ACTIVE_WEEK_KEY);
-  const active=lockedWeeks.find(w=>w.id===activeId && w.weekOf===today && sameShoppingContext(w));
+  const active=lockedWeeks.find(w=>w.id===activeId);
   if(active)return active;
-  // Migration for weeks locked before the linked-shopping feature existed.
-  return lockedWeeks.find(w=>w.weekOf===today && sameShoppingContext(w))||null;
+  // Older saved weeks were created before there was an explicit active ID.
+  return lockedWeeks.find(w=>historicalWeekStart(w)===selectedWeekStart()&&sameShoppingContext(w))||null;
 }
 function markActiveWeek(w){
-  if(!w)return;
-  try{localStorage.setItem(ACTIVE_WEEK_KEY,w.id);}catch(_){}
+  try{if(w)localStorage.setItem(ACTIVE_WEEK_KEY,w.id);else localStorage.removeItem(ACTIVE_WEEK_KEY);}catch(_){}
+}
+function chooseShoppingWeek(id){
+  const w=lockedWeeks.find(w=>w.id===id);if(!w)return;
+  markActiveWeek(w);
+  originalTab('shopping'); // A saved week's checklist never requires editing draft extras.
 }
 function migrateSavedCheckKeys(w){
   if(!w.checks||typeof w.checks!=='object'||Array.isArray(w.checks))w.checks={};
@@ -813,6 +953,21 @@ function migratePreviouslyTickedWeeks(){
     localStorage.setItem(CHECKS_MIGRATION_KEY,'yes');
   }catch(_){/* Preserve existing checks, and retry migration on next visit. */}
 }
+function setWeekSavedTick(w,key,input){
+  if(!w)return;
+  const checked=input.checked,old=w.checks?.[key];
+  w.checks??={};w.checks[key]=checked;
+  if(!saveLockedWeeks()){
+    if(old===undefined)delete w.checks[key];else w.checks[key]=old;
+    input.checked=!checked;
+    input.closest('.shopitem')?.classList.toggle('done',!checked);return;
+  }
+  input.closest('.shopitem')?.classList.toggle('done',checked);
+  if(activeShoppingWeek()?.id===w.id && sameShoppingContext(w)){
+    const currentKey=key.startsWith('food-')?key.slice(5):key;
+    try{localStorage.setItem('omp_tick_'+currentKey,checked?'yes':'no');}catch(_){}
+  }
+}
 function setCurrentSavedTick(input){
   const w=activeShoppingWeek();
   const tick=input.dataset.shopping;
@@ -831,8 +986,17 @@ function setCurrentSavedTick(input){
   input.closest('.shopitem')?.classList.toggle('done',checked);
 }
 function syncedShoppingView(){
-  shoppingBeforeWeekSync();
   const w=activeShoppingWeek();
+  if(w&&!sameShoppingContext(w)){
+    const root=$('shoppingOutput');
+    root.innerHTML=`<div class="summary"><b>Shopping for saved week of ${clean(w.weekOf)}</b><br>${clean(householdLabel(w.settings))} · ${w.meals.length} dinners. This is the locked list, even if you've started a new draft.</div>
+      <div class="actions"><button type="button" onclick="window.print()">Print / Save PDF</button><button type="button" onclick="shareList()">Share / Copy list</button><button type="button" id="resumeDraftShopping">Return to draft list</button></div>
+      ${linkedSavedShopping(w)}`;
+    root.querySelectorAll('[data-week-check]').forEach(input=>input.addEventListener('change',()=>setWeekSavedTick(w,input.dataset.weekCheck,input)));
+    $('resumeDraftShopping').onclick=()=>{markActiveWeek(null);if(!extrasReviewed&&getPlan().length){openExtras();return;}shopping();};
+    return;
+  }
+  shoppingBeforeWeekSync();
   if(!w)return;
   // Replace checkbox nodes to remove v1.5.1's old inline / addEventListener
   // handlers. Only this one handler may now update a saved week's checklist.
@@ -854,8 +1018,8 @@ shopping = syncedShoppingView;
 
 lockThisWeek=function(){
   if(!requireHousehold())return;
-  const today=weekMonday(new Date());
-  const same=lockedWeeks.find(w=>w.weekOf===today&&sameShoppingContext(w));
+  const monday=validateSelectedWeek();if(!monday)return;
+  const same=lockedWeeks.find(w=>historicalWeekStart(w)===monday&&sameShoppingContext(w));
   if(same){
     markActiveWeek(same);
     tab('shopping');
@@ -864,7 +1028,7 @@ lockThisWeek=function(){
   }
   const idsBefore=new Set(lockedWeeks.map(w=>w.id));
   lockBeforeWeekSync();
-  const created=lockedWeeks.find(w=>!idsBefore.has(w.id)&&w.weekOf===today&&sameShoppingContext(w));
+  const created=lockedWeeks.find(w=>!idsBefore.has(w.id)&&historicalWeekStart(w)===monday&&sameShoppingContext(w));
   if(created){
     // A user might have checked items before locking. Carry those checks over.
     migrateSavedCheckKeys(created);
@@ -915,28 +1079,17 @@ function syncedWeeksView(){
       <p class="muted">${w.meals.length} dinners · ${clean(householdLabel(w.settings))}${w.settings?.planMode==='manual'?' · Hand-picked':''}${w.receivedAt?' · Imported copy':''} · Locked ${clean(weekDate(w.createdAt))}</p>
       <details><summary>Dinners & cooking instructions</summary>${w.meals.map((r,i)=>`<div class="saved-dinner"><strong>${i+1}. ${clean(r.title)}</strong><p>${clean(r.minutes||'')}</p><button type="button" data-saved-recipe="${clean(w.id)}" data-meal-index="${i}">Ingredients & cooking steps →</button></div>`).join('')}</details>
       <details class="saved-shopping-details"><summary>Saved shopping list</summary>${linkedSavedShopping(w)}</details>
-      <div class="week-actions"><button type="button" class="share-week" data-share-week="${clean(w.id)}">Share week</button><button type="button" class="delete-week" data-delete-week="${clean(w.id)}">Delete week</button></div>
+      <div class="week-actions"><button type="button" class="shop-week" data-shop-week="${clean(w.id)}">Shop this week</button><button type="button" class="share-week" data-share-week="${clean(w.id)}">Share week</button><button type="button" class="delete-week" data-delete-week="${clean(w.id)}">Delete week</button></div>
     </article>`).join('');
   }
   $('importSharedWeek').addEventListener('click',()=>$('weekImportFile').click());
   root.querySelectorAll('[data-saved-recipe]').forEach(b=>b.addEventListener('click',()=>showSavedRecipe(b.dataset.savedRecipe,Number(b.dataset.mealIndex))));
   root.querySelectorAll('[data-delete-week]').forEach(b=>b.addEventListener('click',()=>deleteLockedWeek(b.dataset.deleteWeek)));
   root.querySelectorAll('[data-share-week]').forEach(b=>b.addEventListener('click',()=>shareLockedWeek(b.dataset.shareWeek)));
+  root.querySelectorAll('[data-shop-week]').forEach(b=>b.addEventListener('click',()=>chooseShoppingWeek(b.dataset.shopWeek)));
   root.querySelectorAll('[data-week-check]').forEach(inp=>inp.addEventListener('change',()=>{
     const w=lockedWeeks.find(w=>w.id===inp.closest('.saved-week')?.dataset.savedWeekId);
-    if(!w)return;
-    const key=inp.dataset.weekCheck,old=w.checks?.[key],checked=inp.checked;
-    w.checks??={};w.checks[key]=checked;
-    if(!saveLockedWeeks()){
-      if(old===undefined)delete w.checks[key];else w.checks[key]=old;
-      inp.checked=!checked;
-      return;
-    }
-    inp.closest('.shopitem')?.classList.toggle('done',checked);
-    if(activeShoppingWeek()?.id===w.id){
-      const currentKey=key.startsWith('food-')?key.slice(5):key;
-      try{localStorage.setItem('omp_tick_'+currentKey,checked?'yes':'no');}catch(_){}
-    }
+    if(w)setWeekSavedTick(w,inp.dataset.weekCheck,inp);
   }));
 }
 renderWeeks = syncedWeeksView;
@@ -951,7 +1104,7 @@ async function shareLockedWeek(id){
   // Save any earlier-indexed checks as the same stable keys before exporting.
   migrateSavedCheckKeys(w);
   const payload={format:WEEK_SHARE_FORMAT,schemaVersion:WEEK_SHARE_SCHEMA,sharedAt:new Date().toISOString(),week:deepCopy(w)};
-  const name='WYF-Week-'+(w.createdAt||new Date().toISOString()).slice(0,10)+'.json';
+  const name='WYF-Week-'+(historicalWeekStart(w)||(w.createdAt||new Date().toISOString()).slice(0,10))+'.json';
   const file=new File([JSON.stringify(payload,null,2)],name,{type:'application/json'});
   const message=`WYF saved week of ${w.weekOf}. Includes meals, recipes and current shopping ticks. On your phone: save this attached file to Files, open WYF → Weeks → Import shared week. This is a snapshot, not live syncing.`;
   try{
@@ -979,6 +1132,9 @@ function validateSharedWeek(data){
   if(!Array.isArray(w.extras)||w.extras.length>100||w.extras.some(e=>!e||typeof e.name!=='string'||e.name.length>150||typeof e.group!=='string'||e.group.length>100))throw new Error('The additional shopping items are invalid.');
   if(!w.checks||typeof w.checks!=='object'||Array.isArray(w.checks)||Object.keys(w.checks).length>800||Object.entries(w.checks).some(([k,v])=>k.length>250||typeof v!=='boolean'))throw new Error('The shopping checklist is invalid.');
   const result=deepCopy(w);
+  if(result.weekStart&&!validWeekStart(result.weekStart))throw new Error('The week commencing date is invalid.');
+  result.weekStart=historicalWeekStart(result);
+  if(!result.weekStart)throw new Error('No valid Monday was found for the saved week.');
   migrateSavedCheckKeys(result);
   result.receivedAt=new Date().toISOString();
   return result;
