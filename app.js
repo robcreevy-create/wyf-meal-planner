@@ -1,5 +1,5 @@
-// WYF v1.5.3. Reliable week dates, active shopping, restore, dietary review.
-const WYF_VERSION = '1.5.3';
+// WYF v1.5.4. Clear Monday-only date selector and compact household form.
+const WYF_VERSION = '1.5.4';
 async function loadPackedRecipes(){
   if(!Array.isArray(window.WYF_RECIPES)) throw new Error('Recipe data is missing.');
   return window.WYF_RECIPES;
@@ -52,6 +52,25 @@ function historicalWeekStart(w){
   if(m&&n>=0){const d=parseLocalDate(`${m[3]}-${String(n+1).padStart(2,'0')}-${String(Number(m[1])).padStart(2,'0')}`);if(d)return mondayOnOrBefore(d);}
   const created=new Date(w?.createdAt);
   return Number.isFinite(created.getTime())?mondayOnOrBefore(created):null;
+}
+// The interface offers Mondays only, using the same compact select control as other fields.
+// Include the current and surrounding weeks, and honour a previously selected Monday
+// even if it falls outside the usual choices. Values remain YYYY-MM-DD for saved data.
+function populateWeekMondayOptions(today=new Date()){
+  const picker=$('weekStart');if(!picker)return;
+  const monday=parseLocalDate(mondayOnOrBefore(today));
+  const choices=[];
+  for(let n=-2;n<=20;n++){
+    const d=new Date(monday.getFullYear(),monday.getMonth(),monday.getDate()+n*7,12);
+    choices.push(localDateISO(d));
+  }
+  if(validWeekStart(settings.planWeekStart)&&!choices.includes(settings.planWeekStart))choices.push(settings.planWeekStart);
+  choices.sort();
+  picker.innerHTML=choices.map(iso=>{
+    const d=parseLocalDate(iso);
+    const shortDate=d.toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'});
+    return `<option value="${iso}">Monday ${shortDate}</option>`;
+  }).join('');
 }
 function selectedWeekStart(){return $('weekStart')?.value||settings.planWeekStart||upcomingWeekStart();}
 function validateSelectedWeek(){
@@ -139,8 +158,6 @@ function renderChildDropdowns(){
 function clearRecipeTicks(){Object.keys(localStorage).filter(k=>k.startsWith('omp_tick_')&&!k.startsWith('omp_tick_extra-')).forEach(k=>localStorage.removeItem(k));}
 function updateHousehold(persist=true){
   const h=readHouseholdForm();householdIsValid=h.valid;
-  $('portionSummary').innerHTML=h.valid?`<strong>Cooking for ${clean(householdLabel(h))}</strong><br>${formatNumber(h.adults+h.childPortions)} adult-sized portions. Ingredients, shopping and cooking amounts update together.`:
-    '<strong>Choose an age and portion for each child.</strong><br>WYF will do the adding up. Age never sets portion size automatically.';
   $('householdError').hidden=h.valid;
   if(!h.valid){
     if(householdLoaded&&!$('shopping').hidden)shopping();
@@ -414,6 +431,7 @@ loadPackedRecipes().then(r=>{
   if(!$('style').value)$('style').value='Mix';
   if(!$('numMeals').value)$('numMeals').value='5';
   const recentlyLocked=lockedWeeks.some(w=>historicalWeekStart(w)===settings.planWeekStart);
+  populateWeekMondayOptions();
   $('weekStart').value=suggestedWeekStart(settings.planWeekStart,new Date(),recentlyLocked);
   childProfiles=Array.isArray(settings.childProfiles)?deepCopy(settings.childProfiles):[];
   if(Array.isArray(settings.preferredMeats))document.querySelectorAll('.checks input').forEach(x=>x.checked=settings.preferredMeats.includes(x.value));

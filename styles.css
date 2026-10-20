@@ -69,7 +69,6 @@ nav button{min-width:0;white-space:nowrap;font-size:clamp(11px,3.05vw,13px);padd
 .child-card .formgrid{grid-template-columns:.8fr 1.4fr;margin:0;gap:10px}
 .child-card select{font-size:16px;padding:11px 7px;min-height:44px}
 #childDetails h3{font-size:16px;margin:3px 0 9px}
-.portion-summary{border-radius:12px;padding:12px 13px;background:#eef4e9;font-size:13px;line-height:1.55;margin-top:14px}
 .serving-badge{border-radius:12px;background:#edf4e9;padding:12px;font-size:14px;line-height:1.5}
 .dish-open{border:0;padding:0;cursor:pointer;color:inherit;font-weight:normal;transition:filter .12s}
 .dish-open:hover{filter:brightness(.97)}
@@ -164,3 +163,9 @@ nav button{min-width:0;white-space:nowrap;font-size:clamp(11px,3.05vw,13px);padd
 .shop-week{background:#dcece0;color:#205d37;font-weight:750}
 @media(max-width:380px){.week-start-row input[type=date]{max-width:100%}}
 @media print{.restore-hint,.week-start-row{display:none!important}}
+
+/* v1.5.4: concise week selection and compact form */
+.week-start-row{background:transparent;border:0;border-radius:0;padding:0;margin:6px 0 16px}
+.week-start-row label{font-weight:700;font-size:13px;color:#355243}
+.week-start-row select{display:block;min-height:44px;width:100%;margin-top:7px;padding:12px 9px;font-size:15px;font-family:inherit;font-weight:400;color:#1e352a;background:#fff;border:1px solid #d6ded6;border-radius:11px}
+.week-start-row .warning{margin-top:7px}
