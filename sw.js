@@ -1,9 +1,9 @@
-/* WYF v1.6.0, recipe library 6. No changes to device-local saved data. */
-const CACHE_NAME='wyf-offline-v1.6.0-library6';
+/* WYF v1.6.0, recipe library 6 photos. No changes to device-local saved data. */
+const CACHE_NAME='wyf-offline-v1.6.0-library6-photos1';
 const PREFIX='wyf-offline-';
 const CORE=[
   './index.html', './app.js?v=1.6.0', './styles.css?v=1.6.0',
-  './recipes-packed.js?v=1.6.0', './recipe-images.js?v=1.6.0',
+  './recipes-packed.js?v=1.6.0', './recipe-images.js?v=library6-photos1',
   './recipe-library-v6.js?v=6',
   './manifest.webmanifest', './icons/wyf-192.png'
 ];
@@ -18,6 +18,11 @@ self.addEventListener('install',event=>{
     const supplement=await cache.match('./recipe-library-v6.js?v=6');
     if(!supplement || !(await supplement.clone().text()).includes("const REVISION = 'recipe-library-6'"))
       throw new Error('The complete recipe-library update is not available yet.');
+    if(!(await shell.clone().text()).includes('recipe-images.js?v=library6-photos1'))
+      throw new Error('The new meal-photo page is not available yet.');
+    const photos=await cache.match('./recipe-images.js?v=library6-photos1');
+    if(!photos || !(await photos.clone().text()).includes('WYF photo revision: library6-photos1'))
+      throw new Error('The complete meal-photo mapping is not available yet.');
     await self.skipWaiting();
   })());
 });

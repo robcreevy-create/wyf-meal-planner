@@ -103,7 +103,7 @@
         <label><input type="checkbox" value="pork"> Pork</label>
       </div>
       <label class="smallcheck"><input id="excludeUnverified" type="checkbox" checked> Exclude recipes whose sauces still need a fish/seafood label check</label>
-      <p class="small-hint">60 recipes with household-scaled quantities. Six new recipes use meal symbols until photographs are added.</p>
+      <p class="small-hint">60 recipes with household-scaled quantities and illustrative meal photos.</p>
       <button class="primary wide" id="generate" type="button">✦ Generate my week</button>
       <p class="small-hint repeat-hint">Uses saved-week history to avoid dinners from the previous four weeks where possible.</p>
       <div class="manual-entry">
@@ -163,6 +163,7 @@
     <input type="file" id="restoreBackupFile" accept=".json,application/json" hidden aria-label="Choose a WYF device backup JSON file">
     <p class="restore-hint">Restoring replaces this phone's saved WYF data. Back up the current device first.</p>
     <p id="recipeContentStatus" class="small-hint" aria-live="polite">Loading recipe library 6…</p>
+    <p id="recipePhotoStatus" class="small-hint">Photo library · 60 meal images</p>
     <p id="updateStatus" aria-live="polite"></p>
     <p id="offlineStatus" class="offline-status" aria-live="polite">Preparing offline shopping and cooking access…</p>
   </footer>
@@ -200,7 +201,7 @@
 </dialog>
 <script src="recipes-packed.js?v=1.6.0"></script>
 <script src="recipe-library-v6.js?v=6"></script>
-<script src="recipe-images.js?v=1.6.0"></script>
+<script src="recipe-images.js?v=library6-photos1"></script>
 
 <script src="app.js?v=1.6.0"></script>
 <script>
