@@ -103,7 +103,7 @@
         <label><input type="checkbox" value="pork"> Pork</label>
       </div>
       <label class="smallcheck"><input id="excludeUnverified" type="checkbox" checked> Exclude recipes whose sauces still need a fish/seafood label check</label>
-      <p class="small-hint">54 recipes with supermarket quantities and original meal illustrations. Some amounts are practical estimates.</p>
+      <p class="small-hint">60 recipes with household-scaled quantities. Six new recipes use meal symbols until photographs are added.</p>
       <button class="primary wide" id="generate" type="button">✦ Generate my week</button>
       <p class="small-hint repeat-hint">Uses saved-week history to avoid dinners from the previous four weeks where possible.</p>
       <div class="manual-entry">
@@ -125,7 +125,7 @@
         <h3>Selected dinners <span id="manualCount" class="manual-counter" aria-live="polite">0 of 5</span></h3>
         <div id="manualSelectedList" aria-live="polite"></div>
       </div>
-      <label class="manual-search-label" for="manualSearch">Search all 54 recipes</label>
+      <label class="manual-search-label" for="manualSearch">Search all 60 recipes</label>
       <input type="search" id="manualSearch" autocomplete="off" placeholder="Search recipes or ingredients…" aria-label="Search recipes to add">
       <p class="manual-results-label" id="manualResultsCount" aria-live="polite"></p>
       <div id="manualResults" class="manual-results"></div>
@@ -138,7 +138,7 @@
   </section>
   <section id="recipes" class="view" hidden>
     <h2>Recipe library</h2>
-    <p class="muted">54 recipes, one chosen version of each. Ingredients and cooking amounts adjust to your household. Tap a meal photo or View to open it.</p>
+    <p class="muted">60 recipes, one chosen version of each. Ingredients and cooking amounts adjust to your household. Tap a meal photo, symbol or View to open it.</p>
     <input id="search" type="search" placeholder="Search a meal or ingredient..." aria-label="Search recipes">
     <div class="formgrid">
       <select id="filterCategory" aria-label="Filter by style"><option>All styles</option><option>Healthy</option><option>Mix</option><option>Comfort</option></select>
@@ -162,6 +162,7 @@
     <div class="actions footer-actions"><button id="checkUpdates" type="button">Check for updates</button><button id="backupDevice" type="button">Back up this device</button><button id="restoreBackup" type="button">Restore from backup</button></div>
     <input type="file" id="restoreBackupFile" accept=".json,application/json" hidden aria-label="Choose a WYF device backup JSON file">
     <p class="restore-hint">Restoring replaces this phone's saved WYF data. Back up the current device first.</p>
+    <p id="recipeContentStatus" class="small-hint" aria-live="polite">Loading recipe library 6…</p>
     <p id="updateStatus" aria-live="polite"></p>
     <p id="offlineStatus" class="offline-status" aria-live="polite">Preparing offline shopping and cooking access…</p>
   </footer>
@@ -198,6 +199,7 @@
   <div id="cookBody"></div>
 </dialog>
 <script src="recipes-packed.js?v=1.6.0"></script>
+<script src="recipe-library-v6.js?v=6"></script>
 <script src="recipe-images.js?v=1.6.0"></script>
 
 <script src="app.js?v=1.6.0"></script>

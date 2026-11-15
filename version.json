@@ -1,9 +1,14 @@
 {
   "version": "1.6.0",
-  "recipeFamilies": 54,
+  "recipeFamilies": 60,
   "additionalVariants": 0,
   "recipeSha256": "2216565f66c34c0e19eddd654e1923b19907f0190e6aa24eac64585ebd79a987",
   "releaseDate": "2026-10-20",
   "recipeImages": 54,
-  "offlineMode": true
+  "offlineMode": true,
+  "recipeLibraryVersion": 6,
+  "recipeContentDate": "2026-11-15",
+  "recipeSupplement": "recipe-library-v6.js",
+  "recipeSupplementSha256": "de02c74393d6003162a42ae0d193a18da4b1c5fcb66667613627e0e8de2fae5b",
+  "recipeSha256Scope": "Unchanged recipes-packed.js base catalogue; recipeSupplement provides the six additions and instruction clarifications."
 }
